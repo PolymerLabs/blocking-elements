@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/PolymerLabs/blockingElements/issues"
   },
-  "homepage": "https://github.com/PolymerLabs/blockingElements#readme"
+  "homepage": "https://github.com/PolymerLabs/blockingElements#readme",
+  "dependencies": {
+    "inert": "git+https://github.com/WICG/inert.git#master"
+  }
 }

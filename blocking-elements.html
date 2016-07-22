@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>blockingElements polyfill test page</title>
+</head>
+
+<body>
+
+  <template id="x-wrap-focus">
+    <style>
+      :host {
+        display: inline-block;
+        border: 1px solid lightgray;
+        padding: 5px;
+      }
+    </style>
+    <label>Wrap <input id="toggle" type="checkbox"></label>
+    <content></content>
+  </template>
+
+  <template id="x-sample">
+    <button>x-sample</button>
+    <x-wrap-focus>
+      <content></content>
+    </x-wrap-focus>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      class XWrapFocus extends HTMLElement {
+        createdCallback() {
+          var t = document.querySelector('#x-wrap-focus');
+          var clone = document.importNode(t.content, true);
+          clone.querySelector('#toggle').addEventListener('change', this._toggleWrap.bind(this));
+          this.createShadowRoot().appendChild(clone);
+        }
+
+        _toggleWrap(evt) {
+          if (evt.target.checked) {
+            document.blockingElements.push(this);
+          } else {
+            document.blockingElements.remove(this);
+          }
+        }
+      }
+      document.registerElement('x-wrap-focus', XWrapFocus);
+
+      class XSample extends HTMLElement {
+        createdCallback() {
+          var t = document.querySelector('#x-sample');
+          var clone = document.importNode(t.content, true);
+          this.createShadowRoot().appendChild(clone);
+        }
+      }
+      document.registerElement('x-sample', XSample);
+    })();
+  </script>
+
+  <h2>x-wrap-focus</h2>
+  <x-wrap-focus>
+    <input>
+  </x-wrap-focus>
+
+  <h2>x-sample</h2>
+  <x-sample>
+    <input>
+  </x-sample>
+
+  <script src="node_modules/inert/inert.js"></script>
+  <script src="blocking-elements.js"></script>
+</body>
+
+</html>
