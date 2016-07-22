@@ -8,40 +8,67 @@
 
 <body>
 
-  <template id="x-wrap-focus">
+  <template id="x-trap-focus">
     <style>
       :host {
-        display: inline-block;
+        display: block;
         border: 1px solid lightgray;
         padding: 5px;
+        margin: 5px;
       }
     </style>
-    <label>Wrap
+    <label>Trap
       <input id="toggle" type="checkbox">
     </label>
     <content></content>
   </template>
 
-  <template id="x-sample">
-    <button>x-sample</button>
-    <x-wrap-focus>
+  <template id="x-a">
+    <style>
+      :host {
+        display: block;
+        border: 1px solid orange;
+        padding: 5px;
+        margin: 5px;
+      }
+    </style>
+    <button>x-a</button>
+    <x-trap-focus class="in-x-a">
       <content></content>
-    </x-wrap-focus>
+    </x-trap-focus>
+  </template>
+
+  <template id="x-b">
+    <style>
+      :host {
+        display: block;
+        border: 1px solid red;
+        padding: 5px;
+        margin: 5px;
+      }
+    </style>
+    <button>x-b</button>
+    <x-trap-focus class="in-x-b">
+      <x-a class="in-x-b">
+        <button>in x-b</button>
+        <content></content>
+      </x-a>
+    </x-trap-focus>
   </template>
 
   <script>
     (function() {
       'use strict';
 
-      class XWrapFocus extends HTMLElement {
+      class XTrapFocus extends HTMLElement {
         createdCallback() {
-          var t = document.querySelector('#x-wrap-focus');
+          var t = document.querySelector('#x-trap-focus');
           var clone = document.importNode(t.content, true);
-          clone.querySelector('#toggle').addEventListener('change', this._toggleWrap.bind(this));
+          clone.querySelector('#toggle').addEventListener('change', this._toggleTrap.bind(this));
           this.createShadowRoot().appendChild(clone);
         }
 
-        _toggleWrap(evt) {
+        _toggleTrap(evt) {
           if (evt.target.checked) {
             document.blockingElements.push(this);
           } else {
@@ -49,28 +76,91 @@
           }
         }
       }
-      document.registerElement('x-wrap-focus', XWrapFocus);
+      document.registerElement('x-trap-focus', XTrapFocus);
 
-      class XSample extends HTMLElement {
+      class XA extends HTMLElement {
         createdCallback() {
-          var t = document.querySelector('#x-sample');
-          var clone = document.importNode(t.content, true);
+          var clone = document.importNode(document.getElementById('x-a').content, true);
           this.createShadowRoot().appendChild(clone);
         }
       }
-      document.registerElement('x-sample', XSample);
+      document.registerElement('x-a', XA);
+
+      class XB extends HTMLElement {
+        createdCallback() {
+          var clone = document.importNode(document.getElementById('x-b').content, true);
+          this.createShadowRoot().appendChild(clone);
+        }
+      }
+      document.registerElement('x-b', XB);
     })();
   </script>
 
-  <h2>x-wrap-focus</h2>
-  <x-wrap-focus>
-    <input>
-  </x-wrap-focus>
+  <h2>x-trap-focus</h2>
+  <x-trap-focus>
+    <input placeholder="in body">
+  </x-trap-focus>
 
-  <h2>x-sample</h2>
-  <x-sample>
+  <p>
+    nested
+  </p>
+  <x-trap-focus>
+    <input placeholder="in body">
+    <x-trap-focus>
+      <input placeholder="in body">
+    </x-trap-focus>
+  </x-trap-focus>
+
+  <h2>x-a</h2>
+  <x-a>
+    <input placeholder="in body">
+  </x-a>
+
+  <p>
+    nested
+  </p>
+  <x-a>
+    <input placeholder="in body">
+    <x-a>
+      <input placeholder="in body">
+    </x-a>
+  </x-a>
+  <p>
+    with x-trap-focus
+  </p>
+  <x-a>
     <input>
-  </x-sample>
+    <x-trap-focus>
+      <input placeholder="in body">
+    </x-trap-focus>
+  </x-a>
+
+  <h2>x-b</h2>
+  <x-b>
+    <input placeholder="in body">
+  </x-b>
+
+  <p>
+    nested
+  </p>
+  <x-b>
+    <input placeholder="in body">
+    <x-b id="innerXB">
+      <input placeholder="in body">
+    </x-b>
+  </x-b>
+
+  <p>
+    with x-trap-focus
+  </p>
+  <x-b>
+    <input placeholder="in body">
+    <x-trap-focus>
+      <input placeholder="x-trap-focus in body">
+    </x-trap-focus>
+  </x-b>
+
+
 
 
   <h2>Lots of focusable elements</h2>

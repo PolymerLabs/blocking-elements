@@ -22,6 +22,7 @@
       /**
        * The blocking elements.
        * @type {Array<Node>}
+       * @private
        */
       this._blockingElements = [];
     }
@@ -31,8 +32,11 @@
      * the blocking elements
      */
     destructor() {
-      for (let i = 0; i < this._blockingElements.length; i++)
-        inertSiblings(this._blockingElements[i], false);
+      for (let i = 0; i < this._blockingElements.length; i++) {
+        getPathToBody(this._blockingElements[i]).forEach(function(node) {
+          setInertToSiblingsOfNode(node, false);
+        });
+      }
       delete this._blockingElements;
     }
 
@@ -56,8 +60,9 @@
         console.warn('node already added in `document.blockingElements`.');
         return;
       }
+      var oldTop = this.top;
       this._blockingElements.push(node);
-      inertSiblings(node, true, getDistributedChildren(node.shadowRoot));
+      topChanged(node, oldTop);
     }
 
     /**
@@ -68,7 +73,7 @@
       let i = this._blockingElements.indexOf(node);
       if (i !== -1) {
         this._blockingElements.splice(i, 1);
-        inertSiblings(node, false);
+        topChanged(this.top, node);
       }
     }
 
@@ -92,50 +97,93 @@
     }
   }
 
+  /**
+   * Sets `inert` to all document nodes except the top node, its parents, and its
+   * distributed content.
+   * @param {Node=} newTop
+   * @param {Node=} oldTop
+   */
+  function topChanged(newTop, oldTop) {
+    // TODO(valdrin) optimize this as it sets values twice.
+    if (oldTop) {
+      getPathToBody(oldTop).forEach(function(node) {
+        setInertToSiblingsOfNode(node, false);
+      });
+    }
+    if (newTop) {
+      let nodesToSkip = newTop.shadowRoot ? getDistributedChildren(newTop.shadowRoot) : null;
+      getPathToBody(newTop).forEach(function(node) {
+        setInertToSiblingsOfNode(node, true, nodesToSkip);
+      });
+    }
+  }
 
   /**
-   * Inerts all the siblings of the node except the node
-   * and the nodes to skip.
+   * Sets `inert` to the siblings of the node except the nodes to skip.
    * @param {Node} node
    * @param {boolean} inert
    * @param {Set<Node>=} nodesToSkip
    */
-  function inertSiblings(node, inert, nodesToSkip) {
+  function setInertToSiblingsOfNode(node, inert, nodesToSkip) {
     let sibling = node;
     while ((sibling = sibling.previousElementSibling)) {
-      if (!nodesToSkip ||!nodesToSkip.has(sibling)) {
+      if (sibling.localName === 'style' || sibling.localName === 'script') {
+        continue;
+      }
+      if (!nodesToSkip || !nodesToSkip.has(sibling)) {
         sibling.inert = inert;
       }
     }
     sibling = node;
     while ((sibling = sibling.nextElementSibling)) {
-      if (!nodesToSkip ||!nodesToSkip.has(sibling)) {
+      if (sibling.localName === 'style' || sibling.localName === 'script') {
+        continue;
+      }
+      if (!nodesToSkip || !nodesToSkip.has(sibling)) {
         sibling.inert = inert;
       }
-    }
-    let parent = node.parentNode || node.host;
-    if (parent && parent !== document.body) {
-      inertSiblings(parent, inert, nodesToSkip);
     }
   }
 
   /**
-   * Returns the distributed children of a shadow root.
-   * @param {DocumentFragment=} root
-   * @returns {Set<Node>=}
+   * Returns the list of parents, shadowRoots and insertion points, starting from
+   * node up to `document.body` (excluded).
+   * @param {!Node} node
+   * @returns {Array<Node>}
    */
-  function getDistributedChildren(root) {
-    if (!root) {
-      return;
+  function getPathToBody(node) {
+    let path = [];
+    let current = node;
+    // Stop to body.
+    while (current && current !== document.body) {
+      path.push(current);
+      // From deepest to top insertion point.
+      const insertionPoints = current.getDestinationInsertionPoints ? [...current.getDestinationInsertionPoints()] : [];
+      if (insertionPoints.length) {
+        for (var i = 0; i < insertionPoints.length - 1; i++) {
+          path.push(insertionPoints[i]);
+        }
+        current = insertionPoints[insertionPoints.length - 1];
+      } else {
+        current = current.parentNode || current.host;
+      }
     }
+    return path;
+  }
+
+  /**
+   * Returns the distributed children of a shadow root.
+   * @param {!DocumentFragment} shadowRoot
+   * @returns {Set<Node>}
+   */
+  function getDistributedChildren(shadowRoot) {
     var result = [];
     // TODO(valdrin) query slots.
-    var contents = root.querySelectorAll('content');
+    var contents = shadowRoot.querySelectorAll('content');
     for (var i = 0; i < contents.length; i++) {
       var children = contents[i].getDistributedNodes();
       for (var j = 0; j < children.length; j++) {
-        // No #text nodes.
-        if (children[j].nodeType !== 3) {
+        if (children[j].nodeType === Node.ELEMENT_NODE) {
           result.push(children[j]);
         }
       }
