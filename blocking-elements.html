@@ -16,7 +16,9 @@
         padding: 5px;
       }
     </style>
-    <label>Wrap <input id="toggle" type="checkbox"></label>
+    <label>Wrap
+      <input id="toggle" type="checkbox">
+    </label>
     <content></content>
   </template>
 
@@ -69,6 +71,14 @@
   <x-sample>
     <input>
   </x-sample>
+
+
+  <h2>Lots of focusable elements</h2>
+  <script>
+    for (var i = 0; i < 100; i++) {
+      document.body.appendChild(document.createElement('input'));
+    }
+  </script>
 
   <script src="node_modules/inert/inert.js"></script>
   <script src="blocking-elements.js"></script>
