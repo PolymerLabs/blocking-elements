@@ -32,10 +32,9 @@
      * the blocking elements
      */
     destructor() {
-      for (let i = 0; i < this._blockingElements.length; i++) {
-        getPathToBody(this._blockingElements[i]).forEach(function(node) {
-          setInertToSiblingsOfNode(node, false);
-        });
+      // Loop from the last to first to gradually update the tree up to body.
+      for (let i = this._blockingElements.length - 1; i >= 0; i--) {
+        topChanged(this._blockingElements[i - 1], this._blockingElements[i]);
       }
       delete this._blockingElements;
     }
@@ -57,7 +56,7 @@
       // TODO(valdrin) should this element be moved to the top if already in
       // the list?
       if (i !== -1) {
-        console.warn('node already added in `document.blockingElements`.');
+        console.warn('node already added in document.blockingElements');
         return;
       }
       var oldTop = this.top;
@@ -98,48 +97,53 @@
   }
 
   /**
-   * Sets `inert` to all document nodes except the top node, its parents, and its
-   * distributed content.
+   * Sets `inert` to all document nodes except the new top node, its parents,
+   * and its distributed content. Pass `oldTop` to limit node updates (will look
+   * for common parents and avoid setting them twice).
    * @param {Node=} newTop
    * @param {Node=} oldTop
    */
   function topChanged(newTop, oldTop) {
-    // TODO(valdrin) optimize this as it sets values twice.
-    if (oldTop) {
-      getPathToBody(oldTop).forEach(function(node) {
-        setInertToSiblingsOfNode(node, false);
-      });
-    }
-    if (newTop) {
-      let nodesToSkip = newTop.shadowRoot ? getDistributedChildren(newTop.shadowRoot) : null;
-      getPathToBody(newTop).forEach(function(node) {
-        setInertToSiblingsOfNode(node, true, nodesToSkip);
-      });
+    let oldPath = oldTop ? getPathToBody(oldTop) : [];
+    let newPath = newTop ? getPathToBody(newTop) : [];
+    let nodesToSkip = newTop && newTop.shadowRoot ? getDistributedChildren(newTop.shadowRoot) : null;
+    // Loop from top to deepest elements, so we find the common parents and
+    // avoid setting them twice.
+    while (oldPath.length || newPath.length) {
+      let oldEl = oldPath.pop();
+      let newEl = newPath.pop();
+      if (oldEl !== newEl) {
+        // Same parent, set only these 2 children.
+        if (oldEl && newEl && oldEl.parentNode === newEl.parentNode) {
+          oldEl.inert = true;
+          newEl.inert = false;
+        } else {
+          oldEl && setInertToSiblingsOfNode(oldEl, false);
+          newEl && setInertToSiblingsOfNode(newEl, true, nodesToSkip);
+        }
+      }
     }
   }
 
+  /* Regex for elements that are not inertable. */
+  const NOT_INERTABLE = /^(style|template|script)$/;
+
   /**
    * Sets `inert` to the siblings of the node except the nodes to skip.
-   * @param {Node} node
+   * @param {!Node} node
    * @param {boolean} inert
    * @param {Set<Node>=} nodesToSkip
    */
   function setInertToSiblingsOfNode(node, inert, nodesToSkip) {
     let sibling = node;
     while ((sibling = sibling.previousElementSibling)) {
-      if (sibling.localName === 'style' || sibling.localName === 'script') {
-        continue;
-      }
-      if (!nodesToSkip || !nodesToSkip.has(sibling)) {
+      if (!NOT_INERTABLE.test(sibling.localName) && (!nodesToSkip || !nodesToSkip.has(sibling))) {
         sibling.inert = inert;
       }
     }
     sibling = node;
     while ((sibling = sibling.nextElementSibling)) {
-      if (sibling.localName === 'style' || sibling.localName === 'script') {
-        continue;
-      }
-      if (!nodesToSkip || !nodesToSkip.has(sibling)) {
+      if (!NOT_INERTABLE.test(sibling.localName) && (!nodesToSkip || !nodesToSkip.has(sibling))) {
         sibling.inert = inert;
       }
     }

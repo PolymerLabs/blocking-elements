@@ -20,7 +20,7 @@
     <label>Trap
       <input id="toggle" type="checkbox">
     </label>
-    <content></content>
+    <content id="xtrapfocus"></content>
   </template>
 
   <template id="x-a">
@@ -34,7 +34,7 @@
     </style>
     <button>x-a</button>
     <x-trap-focus class="in-x-a">
-      <content></content>
+      <content id="xa"></content>
     </x-trap-focus>
   </template>
 
@@ -51,7 +51,7 @@
     <x-trap-focus class="in-x-b">
       <x-a class="in-x-b">
         <button>in x-b</button>
-        <content></content>
+        <content id="xb"></content>
       </x-a>
     </x-trap-focus>
   </template>
