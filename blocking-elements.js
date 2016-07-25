@@ -17,6 +17,11 @@
 
 (function(document) {
 
+  /**
+   * `BlockingElements` manages a stack of elements that inert the interaction
+   * outside them. The top element is the interactive part of the document.
+   * The stack can be updated with the methods `push, remove, pop`.
+   */
   class BlockingElements {
     constructor() {
       /**
@@ -80,7 +85,10 @@
       const i = this._blockingElements.indexOf(element);
       if (i !== -1) {
         this._blockingElements.splice(i, 1);
-        topChanged(this.top, element);
+        // Top changed only if the removed element was the top element.
+        if (i === this._blockingElements.length) {
+          topChanged(this.top, element);
+        }
       }
     }
 
@@ -103,14 +111,14 @@
    * @param {HTMLElement=} oldTop
    */
   function topChanged(newTop, oldTop) {
-    const oldElParentParents = oldTop ? getParents(oldTop) : [];
-    const newElParentParents = newTop ? getParents(newTop) : [];
+    const oldElParents = oldTop ? getParents(oldTop) : [];
+    const newElParents = newTop ? getParents(newTop) : [];
     const elemsToSkip = newTop && newTop.shadowRoot ? getDistributedChildren(newTop.shadowRoot) : null;
     // Loop from top to deepest elements, so we find the common parents and
     // avoid setting them twice.
-    while (oldElParentParents.length || newElParentParents.length) {
-      const oldElParent = oldElParentParents.pop();
-      const newElParent = newElParentParents.pop();
+    while (oldElParents.length || newElParents.length) {
+      const oldElParent = oldElParents.pop();
+      const newElParent = newElParents.pop();
       if (oldElParent !== newElParent) {
         // Same parent, set only these 2 children.
         if (oldElParent && newElParent && oldElParent.parentNode === newElParent.parentNode) {
