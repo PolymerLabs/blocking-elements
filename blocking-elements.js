@@ -60,14 +60,14 @@
      * @param {!HTMLElement} element
      */
     push(element) {
-      let i = this._blockingElements.indexOf(element);
+      const i = this._blockingElements.indexOf(element);
       // TODO(valdrin) should this element be moved to the top if already in
       // the list?
       if (i !== -1) {
         console.warn('element already added in document.blockingElements');
         return;
       }
-      var oldTop = this.top;
+      const oldTop = this.top;
       this._blockingElements.push(element);
       topChanged(element, oldTop);
     }
@@ -77,7 +77,7 @@
      * @param {!HTMLElement} element
      */
     remove(element) {
-      let i = this._blockingElements.indexOf(element);
+      const i = this._blockingElements.indexOf(element);
       if (i !== -1) {
         this._blockingElements.splice(i, 1);
         topChanged(this.top, element);
@@ -89,7 +89,7 @@
      * @returns {HTMLElement|undefined} the removed element.
      */
     pop() {
-      let top = this.top;
+      const top = this.top;
       top && this.remove(top);
       return top;
     }
@@ -103,14 +103,14 @@
    * @param {HTMLElement=} oldTop
    */
   function topChanged(newTop, oldTop) {
-    let oldElParentParents = oldTop ? getParents(oldTop) : [];
-    let newElParentParents = newTop ? getParents(newTop) : [];
-    let elemsToSkip = newTop && newTop.shadowRoot ? getDistributedChildren(newTop.shadowRoot) : null;
+    const oldElParentParents = oldTop ? getParents(oldTop) : [];
+    const newElParentParents = newTop ? getParents(newTop) : [];
+    const elemsToSkip = newTop && newTop.shadowRoot ? getDistributedChildren(newTop.shadowRoot) : null;
     // Loop from top to deepest elements, so we find the common parents and
     // avoid setting them twice.
     while (oldElParentParents.length || newElParentParents.length) {
-      let oldElParent = oldElParentParents.pop();
-      let newElParent = newElParentParents.pop();
+      const oldElParent = oldElParentParents.pop();
+      const newElParent = newElParentParents.pop();
       if (oldElParent !== newElParent) {
         // Same parent, set only these 2 children.
         if (oldElParent && newElParent && oldElParent.parentNode === newElParent.parentNode) {
@@ -155,7 +155,7 @@
    * @returns {Array<HTMLElement>}
    */
   function getParents(element) {
-    let parents = [];
+    const parents = [];
     let current = element;
     // Stop to body.
     while (current && current !== document.body) {
@@ -166,10 +166,10 @@
       // From deepest to top insertion point.
       const insertionPoints = current.getDestinationInsertionPoints ? [...current.getDestinationInsertionPoints()] : [];
       if (insertionPoints.length) {
-        for (var i = 0; i < insertionPoints.length - 1; i++) {
+        current = insertionPoints.pop();
+        for (let i = 0; i < insertionPoints.length; i++) {
           parents.push(insertionPoints[i]);
         }
-        current = insertionPoints[insertionPoints.length - 1];
       } else {
         current = current.parentNode || current.host;
       }
@@ -183,12 +183,12 @@
    * @returns {Set<HTMLElement>}
    */
   function getDistributedChildren(shadowRoot) {
-    var result = new Set();
+    const result = new Set();
     // TODO(valdrin) query slots.
-    var contents = shadowRoot.querySelectorAll('content');
-    for (var i = 0; i < contents.length; i++) {
-      var children = contents[i].getDistributedNodes();
-      for (var j = 0; j < children.length; j++) {
+    const contents = shadowRoot.querySelectorAll('content');
+    for (let i = 0; i < contents.length; i++) {
+      const children = contents[i].getDistributedNodes();
+      for (let j = 0; j < children.length; j++) {
         if (children[j].nodeType === Node.ELEMENT_NODE) {
           result.add(children[j]);
         }
