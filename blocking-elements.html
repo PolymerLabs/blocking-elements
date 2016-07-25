@@ -69,11 +69,10 @@
         }
 
         _toggleTrap(evt) {
-          if (evt.target.checked) {
-            document.blockingElements.push(this);
-          } else {
-            document.blockingElements.remove(this);
-          }
+          let method = evt.target.checked ? 'push' : 'remove';
+          console.time(method);
+          document.blockingElements[method](this);
+          console.timeEnd(method);
         }
       }
       document.registerElement('x-trap-focus', XTrapFocus);
