@@ -131,7 +131,7 @@
    * Sets `inert` to the siblings of the element except the elements to skip.
    * @param {!HTMLElement} element
    * @param {boolean} inert
-   * @param {Set<Node>=} elemsToSkip
+   * @param {Set<HTMLElement>=} elemsToSkip
    */
   function setInertToSiblingsOfElement(element, inert, elemsToSkip) {
     let sibling = element;
@@ -152,7 +152,7 @@
    * Returns the list of parents of an element, starting from elemnet (included)
    * up to `document.body` (excluded).
    * @param {!HTMLElement} element
-   * @returns {Array<Node>}
+   * @returns {Array<HTMLElement>}
    */
   function getParents(element) {
     let parents = [];
