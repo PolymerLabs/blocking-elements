@@ -16,6 +16,8 @@ limitations under the License.
 <head>
   <meta charset="utf-8">
   <title>blockingElements polyfill test page</title>
+  <!-- import customElements polyfill -->
+  <script src="node_modules/webcomponents.js/src/CustomElements/v1/CustomElements.js"></script>
 </head>
 
 <body>
@@ -73,7 +75,7 @@ limitations under the License.
       'use strict';
 
       class XTrapFocus extends HTMLElement {
-        createdCallback() {
+        connectedCallback() {
           const t = document.querySelector('#x-trap-focus');
           const clone = document.importNode(t.content, true);
           clone.querySelector('#toggle').addEventListener('change', this._toggleTrap.bind(this));
@@ -83,27 +85,27 @@ limitations under the License.
         _toggleTrap(evt) {
           const method = evt.target.checked ? 'push' : 'remove';
           console.time(method);
-          document.blockingElements[method](this);
+          document.$blockingElements[method](this);
           console.timeEnd(method);
         }
       }
-      document.registerElement('x-trap-focus', XTrapFocus);
+      customElements.define('x-trap-focus', XTrapFocus);
 
       class XA extends HTMLElement {
-        createdCallback() {
+        connectedCallback() {
           const clone = document.importNode(document.getElementById('x-a').content, true);
           this.createShadowRoot().appendChild(clone);
         }
       }
-      document.registerElement('x-a', XA);
+      customElements.define('x-a', XA);
 
       class XB extends HTMLElement {
-        createdCallback() {
+        connectedCallback() {
           const clone = document.importNode(document.getElementById('x-b').content, true);
           this.createShadowRoot().appendChild(clone);
         }
       }
-      document.registerElement('x-b', XB);
+      customElements.define('x-b', XB);
     })();
   </script>
 

@@ -57,7 +57,7 @@
      * @returns {Array<HTMLElement>}
      */
     get all() {
-      return Array.prototype.slice.apply(this._blockingElements);
+      return [...this._blockingElements];
     }
 
     /**
@@ -247,6 +247,6 @@
     return result;
   }
 
-  document.blockingElements = new BlockingElements();
+  document.$blockingElements = new BlockingElements();
 
 })(document);

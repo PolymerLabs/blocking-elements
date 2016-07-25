@@ -21,7 +21,8 @@
     "url": "https://github.com/PolymerLabs/blockingElements/issues"
   },
   "homepage": "https://github.com/PolymerLabs/blockingElements#readme",
-  "dependencies": {
-    "inert": "git+https://github.com/WICG/inert.git#master"
+  "devDependencies": {
+    "inert": "git+https://github.com/WICG/inert.git#master",
+    "webcomponents.js": "git+https://github.com/webcomponents/webcomponentsjs.git#v1-polymer-edits"
   }
 }
