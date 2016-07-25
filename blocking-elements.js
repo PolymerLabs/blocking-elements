@@ -30,6 +30,13 @@
        * @private
        */
       this._blockingElements = [];
+
+      /**
+       * Elements that are already inert before the first blocking element is pushed.
+       * @type {Set<HTMLElement>}
+       * @private
+       */
+      this._alreadyInertElements = new Set();
     }
 
     /**
@@ -74,7 +81,7 @@
       }
       const oldTop = this.top;
       this._blockingElements.push(element);
-      topChanged(element, oldTop);
+      topChanged(element, oldTop, this._alreadyInertElements);
     }
 
     /**
@@ -87,7 +94,7 @@
         this._blockingElements.splice(i, 1);
         // Top changed only if the removed element was the top element.
         if (i === this._blockingElements.length) {
-          topChanged(this.top, element);
+          topChanged(this.top, element, this._alreadyInertElements);
         }
       }
     }
@@ -107,10 +114,16 @@
    * Sets `inert` to all document elements except the new top element, its parents,
    * and its distributed content. Pass `oldTop` to limit element updates (will look
    * for common parents and avoid setting them twice).
-   * @param {HTMLElement=} newTop
-   * @param {HTMLElement=} oldTop
+   * When the first blocking element is added (`newTop = null`), it saves the elements
+   * that are already inert into `alreadyInertElems`. When the last blocking element
+   * is removed (`oldTop = null`), `alreadyInertElems` are kept inert.
+   * @param {HTMLElement=} newTop When not defined, it means the last blocking
+   *                       element was removed.
+   * @param {HTMLElement=} oldTop When not defined, it means the first blocking
+   *                       element was added.
+   * @param {Set<HTMLElement>} alreadyInertElems Elements to be kept inert.
    */
-  function topChanged(newTop, oldTop) {
+  function topChanged(newTop, oldTop, alreadyInertElems) {
     const oldElParents = oldTop ? getParents(oldTop) : [];
     const newElParents = newTop ? getParents(newTop) : [];
     const elemsToSkip = newTop && newTop.shadowRoot ? getDistributedChildren(newTop.shadowRoot) : null;
@@ -119,16 +132,25 @@
     while (oldElParents.length || newElParents.length) {
       const oldElParent = oldElParents.pop();
       const newElParent = newElParents.pop();
-      if (oldElParent !== newElParent) {
-        // Same parent, set only these 2 children.
-        if (oldElParent && newElParent && oldElParent.parentNode === newElParent.parentNode) {
-          oldElParent.inert = true;
-          newElParent.inert = false;
-        } else {
-          oldElParent && setInertToSiblingsOfElement(oldElParent, false);
-          newElParent && setInertToSiblingsOfElement(newElParent, true, elemsToSkip);
-        }
+      if (oldElParent === newElParent) {
+        continue;
       }
+      // Same parent, set only these 2 children.
+      if (oldElParent && newElParent && oldElParent.parentNode === newElParent.parentNode) {
+        if (!oldTop && oldElParent.inert) {
+          alreadyInertElems.add(oldElParent);
+        }
+        oldElParent.inert = true;
+        newElParent.inert = alreadyInertElems.has(newElParent);
+      } else {
+        oldElParent && setInertToSiblingsOfElement(oldElParent, false, elemsToSkip,
+          alreadyInertElems);
+        newElParent && setInertToSiblingsOfElement(newElParent, true, elemsToSkip,
+          oldTop ? null : alreadyInertElems);
+      }
+    }
+    if (!newTop) {
+      alreadyInertElems.clear();
     }
   }
 
@@ -137,22 +159,44 @@
 
   /**
    * Sets `inert` to the siblings of the element except the elements to skip.
+   * When `inert = true`, already inert elements are added into `alreadyInertElems`;
+   * When `inert = false`, siblings that are contained in `alreadyInertElems` will
+   * be kept inert.
    * @param {!HTMLElement} element
    * @param {boolean} inert
    * @param {Set<HTMLElement>=} elemsToSkip
+   * @param {Set<HTMLElement>=} alreadyInertElems
    */
-  function setInertToSiblingsOfElement(element, inert, elemsToSkip) {
+  function setInertToSiblingsOfElement(element, inert, elemsToSkip, alreadyInertElems) {
+    // Previous siblings.
     let sibling = element;
     while ((sibling = sibling.previousElementSibling)) {
-      if (!NOT_INERTABLE.test(sibling.localName) && (!elemsToSkip || !elemsToSkip.has(sibling))) {
-        sibling.inert = inert;
+      // If not inertable or to be skipped, skip.
+      if (NOT_INERTABLE.test(sibling.localName) ||
+        (elemsToSkip && elemsToSkip.has(sibling))) {
+        continue;
       }
+      // Should be collected since already inerted.
+      if (alreadyInertElems && inert && sibling.inert) {
+        alreadyInertElems.add(sibling);
+      }
+      // Should be kept inert if it's in `alreadyInertElems`.
+      sibling.inert = inert || alreadyInertElems.has(sibling);
     }
+    // Next siblings.
     sibling = element;
     while ((sibling = sibling.nextElementSibling)) {
-      if (!NOT_INERTABLE.test(sibling.localName) && (!elemsToSkip || !elemsToSkip.has(sibling))) {
-        sibling.inert = inert;
+      // If not inertable or to be skipped, skip.
+      if (NOT_INERTABLE.test(sibling.localName) ||
+        (elemsToSkip && elemsToSkip.has(sibling))) {
+        continue;
       }
+      // Should be collected since already inerted.
+      if (alreadyInertElems && inert && sibling.inert) {
+        alreadyInertElems.add(sibling);
+      }
+      // Should be kept inert if it's in `alreadyInertElems`.
+      sibling.inert = inert || alreadyInertElems.has(sibling);
     }
   }
 
@@ -167,12 +211,13 @@
     let current = element;
     // Stop to body.
     while (current && current !== document.body) {
+      let insertionPoints = [];
       // Skip shadow roots.
       if (current.nodeType === Node.ELEMENT_NODE) {
         parents.push(current);
+        // From deepest to top insertion point.
+        insertionPoints = [...current.getDestinationInsertionPoints()];
       }
-      // From deepest to top insertion point.
-      const insertionPoints = current.getDestinationInsertionPoints ? [...current.getDestinationInsertionPoints()] : [];
       if (insertionPoints.length) {
         current = insertionPoints.pop();
         for (let i = 0; i < insertionPoints.length; i++) {
