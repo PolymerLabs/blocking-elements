@@ -62,14 +62,14 @@
 
       class XTrapFocus extends HTMLElement {
         createdCallback() {
-          var t = document.querySelector('#x-trap-focus');
-          var clone = document.importNode(t.content, true);
+          const t = document.querySelector('#x-trap-focus');
+          const clone = document.importNode(t.content, true);
           clone.querySelector('#toggle').addEventListener('change', this._toggleTrap.bind(this));
           this.createShadowRoot().appendChild(clone);
         }
 
         _toggleTrap(evt) {
-          let method = evt.target.checked ? 'push' : 'remove';
+          const method = evt.target.checked ? 'push' : 'remove';
           console.time(method);
           document.blockingElements[method](this);
           console.timeEnd(method);
@@ -79,7 +79,7 @@
 
       class XA extends HTMLElement {
         createdCallback() {
-          var clone = document.importNode(document.getElementById('x-a').content, true);
+          const clone = document.importNode(document.getElementById('x-a').content, true);
           this.createShadowRoot().appendChild(clone);
         }
       }
@@ -87,7 +87,7 @@
 
       class XB extends HTMLElement {
         createdCallback() {
-          var clone = document.importNode(document.getElementById('x-b').content, true);
+          const clone = document.importNode(document.getElementById('x-b').content, true);
           this.createShadowRoot().appendChild(clone);
         }
       }
@@ -169,7 +169,7 @@
 
   <h2>Lots of focusable elements</h2>
   <script>
-    for (var i = 0; i < 100; i++) {
+    for (let i = 0; i < 100; i++) {
       document.body.appendChild(document.createElement('input'));
     }
   </script>
