@@ -21,7 +21,7 @@
     constructor() {
       /**
        * The blocking elements.
-       * @type {Array<Node>}
+       * @type {Array<HTMLElement>}
        * @private
        */
       this._blockingElements = [];
@@ -40,86 +40,85 @@
     }
 
     /**
+     * A copy of the blocking elements.
+     * @returns {Array<HTMLElement>}
+     */
+    get all() {
+      return Array.prototype.slice.apply(this._blockingElements);
+    }
+
+    /**
      * The top blocking element.
-     * @type {Node|undefined}
+     * @type {HTMLElement|undefined}
      */
     get top() {
       return this._blockingElements[this._blockingElements.length - 1];
     }
 
     /**
-     * Adds the node to the blocking elements.
-     * @param {!Node} node
+     * Adds the element to the blocking elements.
+     * @param {!HTMLElement} element
      */
-    push(node) {
-      let i = this._blockingElements.indexOf(node);
+    push(element) {
+      let i = this._blockingElements.indexOf(element);
       // TODO(valdrin) should this element be moved to the top if already in
       // the list?
       if (i !== -1) {
-        console.warn('node already added in document.blockingElements');
+        console.warn('element already added in document.blockingElements');
         return;
       }
       var oldTop = this.top;
-      this._blockingElements.push(node);
-      topChanged(node, oldTop);
+      this._blockingElements.push(element);
+      topChanged(element, oldTop);
     }
 
     /**
-     * Removes the node from the blocking elements.
-     * @param {!Node} node
+     * Removes the element from the blocking elements.
+     * @param {!HTMLElement} element
      */
-    remove(node) {
-      let i = this._blockingElements.indexOf(node);
+    remove(element) {
+      let i = this._blockingElements.indexOf(element);
       if (i !== -1) {
         this._blockingElements.splice(i, 1);
-        topChanged(this.top, node);
+        topChanged(this.top, element);
       }
     }
 
     /**
      * Remove the top blocking element and returns it.
-     * @returns {Node|undefined} the removed node.
+     * @returns {HTMLElement|undefined} the removed element.
      */
     pop() {
       let top = this.top;
       top && this.remove(top);
       return top;
     }
-
-    /**
-     * Returns if the node is a blocking element.
-     * @param {!Node} node
-     * @return {boolean}
-     */
-    has(node) {
-      return this._blockingElements.indexOf(node) !== -1;
-    }
   }
 
   /**
-   * Sets `inert` to all document nodes except the new top node, its parents,
-   * and its distributed content. Pass `oldTop` to limit node updates (will look
+   * Sets `inert` to all document elements except the new top element, its parents,
+   * and its distributed content. Pass `oldTop` to limit element updates (will look
    * for common parents and avoid setting them twice).
-   * @param {Node=} newTop
-   * @param {Node=} oldTop
+   * @param {HTMLElement=} newTop
+   * @param {HTMLElement=} oldTop
    */
   function topChanged(newTop, oldTop) {
-    let oldPath = oldTop ? getPathToBody(oldTop) : [];
-    let newPath = newTop ? getPathToBody(newTop) : [];
-    let nodesToSkip = newTop && newTop.shadowRoot ? getDistributedChildren(newTop.shadowRoot) : null;
+    let oldElParentParents = oldTop ? getParents(oldTop) : [];
+    let newElParentParents = newTop ? getParents(newTop) : [];
+    let elemsToSkip = newTop && newTop.shadowRoot ? getDistributedChildren(newTop.shadowRoot) : null;
     // Loop from top to deepest elements, so we find the common parents and
     // avoid setting them twice.
-    while (oldPath.length || newPath.length) {
-      let oldEl = oldPath.pop();
-      let newEl = newPath.pop();
-      if (oldEl !== newEl) {
+    while (oldElParentParents.length || newElParentParents.length) {
+      let oldElParent = oldElParentParents.pop();
+      let newElParent = newElParentParents.pop();
+      if (oldElParent !== newElParent) {
         // Same parent, set only these 2 children.
-        if (oldEl && newEl && oldEl.parentNode === newEl.parentNode) {
-          oldEl.inert = true;
-          newEl.inert = false;
+        if (oldElParent && newElParent && oldElParent.parentNode === newElParent.parentNode) {
+          oldElParent.inert = true;
+          newElParent.inert = false;
         } else {
-          oldEl && setInertToSiblingsOfNode(oldEl, false);
-          newEl && setInertToSiblingsOfNode(newEl, true, nodesToSkip);
+          oldElParent && setInertToSiblingsOfElement(oldElParent, false);
+          newElParent && setInertToSiblingsOfElement(newElParent, true, elemsToSkip);
         }
       }
     }
@@ -129,56 +128,59 @@
   const NOT_INERTABLE = /^(style|template|script)$/;
 
   /**
-   * Sets `inert` to the siblings of the node except the nodes to skip.
-   * @param {!Node} node
+   * Sets `inert` to the siblings of the element except the elements to skip.
+   * @param {!HTMLElement} element
    * @param {boolean} inert
-   * @param {Set<Node>=} nodesToSkip
+   * @param {Set<Node>=} elemsToSkip
    */
-  function setInertToSiblingsOfNode(node, inert, nodesToSkip) {
-    let sibling = node;
+  function setInertToSiblingsOfElement(element, inert, elemsToSkip) {
+    let sibling = element;
     while ((sibling = sibling.previousElementSibling)) {
-      if (!NOT_INERTABLE.test(sibling.localName) && (!nodesToSkip || !nodesToSkip.has(sibling))) {
+      if (!NOT_INERTABLE.test(sibling.localName) && (!elemsToSkip || !elemsToSkip.has(sibling))) {
         sibling.inert = inert;
       }
     }
-    sibling = node;
+    sibling = element;
     while ((sibling = sibling.nextElementSibling)) {
-      if (!NOT_INERTABLE.test(sibling.localName) && (!nodesToSkip || !nodesToSkip.has(sibling))) {
+      if (!NOT_INERTABLE.test(sibling.localName) && (!elemsToSkip || !elemsToSkip.has(sibling))) {
         sibling.inert = inert;
       }
     }
   }
 
   /**
-   * Returns the list of parents, shadowRoots and insertion points, starting from
-   * node up to `document.body` (excluded).
-   * @param {!Node} node
+   * Returns the list of parents of an element, starting from elemnet (included)
+   * up to `document.body` (excluded).
+   * @param {!HTMLElement} element
    * @returns {Array<Node>}
    */
-  function getPathToBody(node) {
-    let path = [];
-    let current = node;
+  function getParents(element) {
+    let parents = [];
+    let current = element;
     // Stop to body.
     while (current && current !== document.body) {
-      path.push(current);
+      // Skip shadow roots.
+      if (current.nodeType === Node.ELEMENT_NODE) {
+        parents.push(current);
+      }
       // From deepest to top insertion point.
       const insertionPoints = current.getDestinationInsertionPoints ? [...current.getDestinationInsertionPoints()] : [];
       if (insertionPoints.length) {
         for (var i = 0; i < insertionPoints.length - 1; i++) {
-          path.push(insertionPoints[i]);
+          parents.push(insertionPoints[i]);
         }
         current = insertionPoints[insertionPoints.length - 1];
       } else {
         current = current.parentNode || current.host;
       }
     }
-    return path;
+    return parents;
   }
 
   /**
    * Returns the distributed children of a shadow root.
    * @param {!DocumentFragment} shadowRoot
-   * @returns {Set<Node>}
+   * @returns {Set<HTMLElement>}
    */
   function getDistributedChildren(shadowRoot) {
     var result = [];
