@@ -61,10 +61,10 @@
 
     /**
      * The top blocking element.
-     * @type {HTMLElement|undefined}
+     * @type {HTMLElement|null}
      */
     get top() {
-      return this._blockingElements[this._blockingElements.length - 1];
+      return this._blockingElements[this._blockingElements.length - 1] || null;
     }
 
     /**
@@ -117,11 +117,9 @@
    * When the first blocking element is added (`newTop = null`), it saves the elements
    * that are already inert into `alreadyInertElems`. When the last blocking element
    * is removed (`oldTop = null`), `alreadyInertElems` are kept inert.
-   * @param {HTMLElement=} newTop When not defined, it means the last blocking
-   *                       element was removed.
-   * @param {HTMLElement=} oldTop When not defined, it means the first blocking
-   *                       element was added.
-   * @param {Set<HTMLElement>} alreadyInertElems Elements to be kept inert.
+   * @param {HTMLElement} newTop If null, it means the last blocking element was removed.
+   * @param {HTMLElement} oldTop If null, it means the first blocking element was added.
+   * @param {!Set<HTMLElement>} alreadyInertElems Elements to be kept inert.
    */
   function topChanged(newTop, oldTop, alreadyInertElems) {
     const oldElParents = oldTop ? getParents(oldTop) : [];
@@ -145,6 +143,8 @@
       } else {
         oldElParent && setInertToSiblingsOfElement(oldElParent, false, elemsToSkip,
           alreadyInertElems);
+        // Collect the already inert elements only if it is the first blocking element
+        // (if oldTop = null)
         newElParent && setInertToSiblingsOfElement(newElParent, true, elemsToSkip,
           oldTop ? null : alreadyInertElems);
       }
@@ -164,8 +164,8 @@
    * be kept inert.
    * @param {!HTMLElement} element
    * @param {boolean} inert
-   * @param {Set<HTMLElement>=} elemsToSkip
-   * @param {Set<HTMLElement>=} alreadyInertElems
+   * @param {Set<HTMLElement>} elemsToSkip
+   * @param {Set<HTMLElement>} alreadyInertElems
    */
   function setInertToSiblingsOfElement(element, inert, elemsToSkip, alreadyInertElems) {
     // Previous siblings.
@@ -181,7 +181,7 @@
         alreadyInertElems.add(sibling);
       }
       // Should be kept inert if it's in `alreadyInertElems`.
-      sibling.inert = inert || alreadyInertElems.has(sibling);
+      sibling.inert = inert || (alreadyInertElems && alreadyInertElems.has(sibling));
     }
     // Next siblings.
     sibling = element;
@@ -196,7 +196,7 @@
         alreadyInertElems.add(sibling);
       }
       // Should be kept inert if it's in `alreadyInertElems`.
-      sibling.inert = inert || alreadyInertElems.has(sibling);
+      sibling.inert = inert || (alreadyInertElems && alreadyInertElems.has(sibling));
     }
   }
 
