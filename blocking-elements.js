@@ -21,6 +21,7 @@
    * `BlockingElements` manages a stack of elements that inert the interaction
    * outside them. The top element is the interactive part of the document.
    * The stack can be updated with the methods `push, remove, pop`.
+   * @class
    */
   class BlockingElements {
     constructor() {
@@ -201,7 +202,7 @@
   }
 
   /**
-   * Returns the list of parents of an element, starting from elemnet (included)
+   * Returns the list of parents of an element, starting from element (included)
    * up to `document.body` (excluded).
    * @param {!HTMLElement} element
    * @returns {Array<HTMLElement>}
@@ -238,15 +239,11 @@
   function getDistributedChildren(shadowRoot) {
     const result = new Set();
     // TODO(valdrin) query slots.
-    const contents = shadowRoot.querySelectorAll('content');
-    for (let i = 0; i < contents.length; i++) {
-      const children = contents[i].getDistributedNodes();
-      for (let j = 0; j < children.length; j++) {
-        if (children[j].nodeType === Node.ELEMENT_NODE) {
-          result.add(children[j]);
-        }
-      }
-    }
+    [...shadowRoot.querySelectorAll('content')].forEach(function(content) {
+      [...content.getDistributedNodes()].forEach(function(child) {
+        (child.nodeType === Node.ELEMENT_NODE) && result.add(child);
+      });
+    });
     return result;
   }
 
