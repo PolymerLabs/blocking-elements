@@ -183,18 +183,18 @@
    * @returns {Set<HTMLElement>}
    */
   function getDistributedChildren(shadowRoot) {
-    var result = [];
+    var result = new Set();
     // TODO(valdrin) query slots.
     var contents = shadowRoot.querySelectorAll('content');
     for (var i = 0; i < contents.length; i++) {
       var children = contents[i].getDistributedNodes();
       for (var j = 0; j < children.length; j++) {
         if (children[j].nodeType === Node.ELEMENT_NODE) {
-          result.push(children[j]);
+          result.add(children[j]);
         }
       }
     }
-    return new Set(result);
+    return result;
   }
 
   document.blockingElements = new BlockingElements();
