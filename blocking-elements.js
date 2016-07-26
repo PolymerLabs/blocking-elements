@@ -21,6 +21,13 @@
   const BLOCKING_ELEMS = Symbol('blockingElements');
   const ALREADY_INERT_ELEMS = Symbol('alreadyInertElements');
 
+  /* Symbols for static methods */
+  const TOP_CHANGED_FN = Symbol('topChanged');
+  const NOT_INERTABLE_FN = Symbol('notInertable');
+  const SET_INERT_FN = Symbol('setInertToSiblingsOfElement');
+  const GET_PARENTS_FN = Symbol('getParents');
+  const GET_DISTRIB_CHILDREN_FN = Symbol('getDistributedChildren');
+
   /**
    * `BlockingElements` manages a stack of elements that inert the interaction
    * outside them. The top element is the interactive part of the document.
@@ -52,7 +59,7 @@
       // Loop from the last to first to gradually update the tree up to body.
       const elems = this[BLOCKING_ELEMS];
       for (let i = elems.length - 1; i >= 0; i--) {
-        BlockingElements._topChaged(elems[i - 1], elems[i], this[ALREADY_INERT_ELEMS]);
+        BlockingElements[TOP_CHANGED_FN](elems[i - 1], elems[i], this[ALREADY_INERT_ELEMS]);
       }
       delete this[BLOCKING_ELEMS];
       delete this[ALREADY_INERT_ELEMS];
@@ -89,7 +96,7 @@
       }
       const oldTop = this.top;
       this[BLOCKING_ELEMS].push(element);
-      BlockingElements._topChaged(element, oldTop, this[ALREADY_INERT_ELEMS]);
+      BlockingElements[TOP_CHANGED_FN](element, oldTop, this[ALREADY_INERT_ELEMS]);
     }
 
     /**
@@ -102,14 +109,14 @@
         this[BLOCKING_ELEMS].splice(i, 1);
         // Top changed only if the removed element was the top element.
         if (i === this[BLOCKING_ELEMS].length) {
-          BlockingElements._topChaged(this.top, element, this[ALREADY_INERT_ELEMS]);
+          BlockingElements[TOP_CHANGED_FN](this.top, element, this[ALREADY_INERT_ELEMS]);
         }
       }
     }
 
     /**
      * Remove the top blocking element and returns it.
-     * @returns {HTMLElement|undefined} the removed element.
+     * @returns {HTMLElement|null} the removed element.
      */
     pop() {
       const top = this.top;
@@ -129,11 +136,11 @@
      * @param {!Set<HTMLElement>} alreadyInertElems Elements to be kept inert.
      * @private
      */
-    static _topChaged(newTop, oldTop, alreadyInertElems) {
-      const oldElParents = oldTop ? this._getParents(oldTop) : [];
-      const newElParents = newTop ? this._getParents(newTop) : [];
+    static[TOP_CHANGED_FN](newTop, oldTop, alreadyInertElems) {
+      const oldElParents = oldTop ? this[GET_PARENTS_FN](oldTop) : [];
+      const newElParents = newTop ? this[GET_PARENTS_FN](newTop) : [];
       const elemsToSkip = newTop && newTop.shadowRoot ?
-        this._getDistributedChildren(newTop.shadowRoot) : null;
+        this[GET_DISTRIB_CHILDREN_FN](newTop.shadowRoot) : null;
       // Loop from top to deepest elements, so we find the common parents and
       // avoid setting them twice.
       while (oldElParents.length || newElParents.length) {
@@ -151,12 +158,12 @@
           oldElParent.inert = true;
           newElParent.inert = alreadyInertElems.has(newElParent);
         } else {
-          oldElParent && this._setInertToSiblingsOfElement(oldElParent,
-            false, elemsToSkip, alreadyInertElems);
+          oldElParent && this[SET_INERT_FN](oldElParent, false, elemsToSkip,
+            alreadyInertElems);
           // Collect the already inert elements only if it is the first blocking
           // element (if oldTop = null)
-          newElParent && this._setInertToSiblingsOfElement(newElParent,
-            true, elemsToSkip, oldTop ? null : alreadyInertElems);
+          newElParent && this[SET_INERT_FN](newElParent, true, elemsToSkip,
+            oldTop ? null : alreadyInertElems);
         }
       }
       if (!newTop) {
@@ -170,7 +177,7 @@
      * @returns {boolean}
      * @private
      */
-    static _notInertable(element) {
+    static[NOT_INERTABLE_FN](element) {
       return /^(style|template|script)$/.test(element.localName);
     }
 
@@ -185,12 +192,12 @@
      * @param {Set<HTMLElement>} alreadyInertElems
      * @private
      */
-    static _setInertToSiblingsOfElement(element, inert, elemsToSkip, alreadyInertElems) {
+    static[SET_INERT_FN](element, inert, elemsToSkip, alreadyInertElems) {
       // Previous siblings.
       let sibling = element;
       while ((sibling = sibling.previousElementSibling)) {
         // If not inertable or to be skipped, skip.
-        if (this._notInertable(sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
+        if (this[NOT_INERTABLE_FN](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
           continue;
         }
         // Should be collected since already inerted.
@@ -204,7 +211,7 @@
       sibling = element;
       while ((sibling = sibling.nextElementSibling)) {
         // If not inertable or to be skipped, skip.
-        if (this._notInertable(sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
+        if (this[NOT_INERTABLE_FN](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
           continue;
         }
         // Should be collected since already inerted.
@@ -223,7 +230,7 @@
      * @returns {Array<HTMLElement>}
      * @private
      */
-    static _getParents(element) {
+    static[GET_PARENTS_FN](element) {
       const parents = [];
       let current = element;
       // Stop to body.
@@ -253,7 +260,7 @@
      * @returns {Set<HTMLElement>}
      * @private
      */
-    static _getDistributedChildren(shadowRoot) {
+    static[GET_DISTRIB_CHILDREN_FN](shadowRoot) {
       const result = new Set();
       // TODO(valdrin) query slots.
       [...shadowRoot.querySelectorAll('content')].forEach(function(content) {
