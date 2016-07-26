@@ -47,9 +47,10 @@
     destructor() {
       // Loop from the last to first to gradually update the tree up to body.
       for (let i = this._blockingElements.length - 1; i >= 0; i--) {
-        topChanged(this._blockingElements[i - 1], this._blockingElements[i]);
+        topChanged(this._blockingElements[i - 1], this._blockingElements[i], this._alreadyInertElements);
       }
       delete this._blockingElements;
+      delete this._alreadyInertElements;
     }
 
     /**
