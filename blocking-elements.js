@@ -242,7 +242,9 @@
         if (current.nodeType === Node.ELEMENT_NODE) {
           parents.push(current);
           // From deepest to top insertion point.
-          insertionPoints = [...current.getDestinationInsertionPoints()];
+          if (current.getDestinationInsertionPoints) {
+            insertionPoints = [...current.getDestinationInsertionPoints()];
+          }
         }
         if (insertionPoints.length) {
           current = insertionPoints.pop();
