@@ -24,9 +24,11 @@
   /* Symbols for static methods */
   const TOP_CHANGED_FN = Symbol('topChanged');
   const NOT_INERTABLE_FN = Symbol('notInertable');
-  const SET_INERT_FN = Symbol('setInertToSiblingsOfElement');
+  const SET_SIBLINGS_INERT_FN = Symbol('setInertToSiblingsOfElement');
   const GET_PARENTS_FN = Symbol('getParents');
   const GET_DISTRIB_CHILDREN_FN = Symbol('getDistributedChildren');
+  const IS_INERT_FN = Symbol('isInert');
+  const SET_INERT_FN = Symbol('setInert');
 
   /**
    * `BlockingElements` manages a stack of elements that inert the interaction
@@ -152,17 +154,17 @@
         // Same parent, set only these 2 children.
         if (oldElParent && newElParent &&
           oldElParent.parentNode === newElParent.parentNode) {
-          if (!oldTop && oldElParent.inert) {
+          if (!oldTop && this[IS_INERT_FN](oldElParent)) {
             alreadyInertElems.add(oldElParent);
           }
-          oldElParent.inert = true;
-          newElParent.inert = alreadyInertElems.has(newElParent);
+          this[SET_INERT_FN](oldElParent, true);
+          this[SET_INERT_FN](newElParent, alreadyInertElems.has(newElParent));
         } else {
-          oldElParent && this[SET_INERT_FN](oldElParent, false, elemsToSkip,
+          oldElParent && this[SET_SIBLINGS_INERT_FN](oldElParent, false, elemsToSkip,
             alreadyInertElems);
           // Collect the already inert elements only if it is the first blocking
           // element (if oldTop = null)
-          newElParent && this[SET_INERT_FN](newElParent, true, elemsToSkip,
+          newElParent && this[SET_SIBLINGS_INERT_FN](newElParent, true, elemsToSkip,
             oldTop ? null : alreadyInertElems);
         }
       }
@@ -192,7 +194,7 @@
      * @param {Set<HTMLElement>} alreadyInertElems
      * @private
      */
-    static[SET_INERT_FN](element, inert, elemsToSkip, alreadyInertElems) {
+    static[SET_SIBLINGS_INERT_FN](element, inert, elemsToSkip, alreadyInertElems) {
       // Previous siblings.
       let sibling = element;
       while ((sibling = sibling.previousElementSibling)) {
@@ -201,11 +203,11 @@
           continue;
         }
         // Should be collected since already inerted.
-        if (alreadyInertElems && inert && sibling.inert) {
+        if (alreadyInertElems && inert && this[IS_INERT_FN](sibling)) {
           alreadyInertElems.add(sibling);
         }
         // Should be kept inert if it's in `alreadyInertElems`.
-        sibling.inert = inert || (alreadyInertElems && alreadyInertElems.has(sibling));
+        this[SET_INERT_FN](sibling, inert || (alreadyInertElems && alreadyInertElems.has(sibling)));
       }
       // Next siblings.
       sibling = element;
@@ -215,11 +217,11 @@
           continue;
         }
         // Should be collected since already inerted.
-        if (alreadyInertElems && inert && sibling.inert) {
+        if (alreadyInertElems && inert && this[IS_INERT_FN](sibling)) {
           alreadyInertElems.add(sibling);
         }
         // Should be kept inert if it's in `alreadyInertElems`.
-        sibling.inert = inert || (alreadyInertElems && alreadyInertElems.has(sibling));
+        this[SET_INERT_FN](sibling, inert || (alreadyInertElems && alreadyInertElems.has(sibling)));
       }
     }
 
@@ -269,6 +271,33 @@
         });
       });
       return result;
+    }
+
+    /**
+     * Returns if an element is inert.
+     * @param {!HTMLElement} element
+     * @returns {boolean}
+     * @private
+     */
+    static[IS_INERT_FN](element) {
+      return element.hasAttribute('inert');
+    }
+
+    /**
+     * Sets inert to an element.
+     * @param {!HTMLElement} element
+     * @param {boolean} inert
+     * @private
+     */
+    static[SET_INERT_FN](element, inert) {
+      // Update JS property.
+      element.inert = inert;
+      // Reflect to attribute.
+      if (inert) {
+        element.setAttribute('inert', '');
+      } else {
+        element.removeAttribute('inert');
+      }
     }
   }
 
