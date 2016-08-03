@@ -17,6 +17,7 @@ limitations under the License.
   <meta charset="utf-8">
   <title>blockingElements polyfill test page</title>
   <script src="node_modules/webcomponents.js/webcomponents-lite.js"></script>
+  <script src="blocking-elements.js"></script>
 </head>
 
 <body>
@@ -33,7 +34,7 @@ limitations under the License.
     <label>Trap
       <input id="toggle" type="checkbox">
     </label>
-    <content id="xtrapfocus"></content>
+    <slot id="xtrapfocus"></slot>
   </template>
 
   <template id="x-a">
@@ -47,7 +48,7 @@ limitations under the License.
     </style>
     <button>x-a</button>
     <x-trap-focus class="in-x-a">
-      <content id="xa"></content>
+      <slot id="xa"></slot>
     </x-trap-focus>
   </template>
 
@@ -64,7 +65,7 @@ limitations under the License.
     <x-trap-focus class="in-x-b">
       <x-a class="in-x-b">
         <button>in x-b</button>
-        <content id="xb"></content>
+        <slot id="xb"></slot>
       </x-a>
     </x-trap-focus>
   </template>
@@ -78,7 +79,9 @@ limitations under the License.
           const t = document.querySelector('#x-trap-focus');
           const clone = document.importNode(t.content, true);
           clone.querySelector('#toggle').addEventListener('change', this._toggleTrap.bind(this));
-          this.createShadowRoot().appendChild(clone);
+          this.attachShadow({
+            mode: 'open'
+          }).appendChild(clone);
         }
 
         _toggleTrap(evt) {
@@ -93,7 +96,9 @@ limitations under the License.
       class XA extends HTMLElement {
         connectedCallback() {
           const clone = document.importNode(document.getElementById('x-a').content, true);
-          this.createShadowRoot().appendChild(clone);
+          this.attachShadow({
+            mode: 'open'
+          }).appendChild(clone);
         }
       }
       customElements.define('x-a', XA);
@@ -101,7 +106,9 @@ limitations under the License.
       class XB extends HTMLElement {
         connectedCallback() {
           const clone = document.importNode(document.getElementById('x-b').content, true);
-          this.createShadowRoot().appendChild(clone);
+          this.attachShadow({
+            mode: 'open'
+          }).appendChild(clone);
         }
       }
       customElements.define('x-b', XB);
@@ -188,7 +195,6 @@ limitations under the License.
   </script>
 
   <script src="node_modules/inert/inert.js"></script>
-  <script src="blocking-elements.js"></script>
 </body>
 
 </html>

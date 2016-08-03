@@ -72,7 +72,7 @@
      * @type {Array<HTMLElement>}
      */
     get all() {
-      return [...this[BLOCKING_ELEMS]];
+      return Array.prototype.slice.call(this[BLOCKING_ELEMS]);
     }
 
     /**
@@ -90,8 +90,6 @@
      */
     push(element) {
       const i = this[BLOCKING_ELEMS].indexOf(element);
-      // TODO(valdrin) should this element be moved to the top if already in
-      // the list?
       if (i !== -1) {
         console.warn('element already added in document.blockingElements');
         return;
@@ -237,20 +235,17 @@
       let current = element;
       // Stop to body.
       while (current && current !== document.body) {
-        let insertionPoints = [];
         // Skip shadow roots.
         if (current.nodeType === Node.ELEMENT_NODE) {
           parents.push(current);
-          // From deepest to top insertion point.
-          if (current.getDestinationInsertionPoints) {
-            insertionPoints = [...current.getDestinationInsertionPoints()];
-          }
         }
-        if (insertionPoints.length) {
-          current = insertionPoints.pop();
-          for (let i = 0; i < insertionPoints.length; i++) {
-            parents.push(insertionPoints[i]);
+        if (current.assignedSlot) {
+          // Collect slots from deepest slot to top.
+          while ((current = current.assignedSlot)) {
+            parents.push(current);
           }
+          // Continue the search on the top slot.
+          current = parents.pop();
         } else {
           current = current.parentNode || current.host;
         }
@@ -266,12 +261,15 @@
      */
     static[GET_DISTRIB_CHILDREN_FN](shadowRoot) {
       const result = new Set();
-      // TODO(valdrin) query slots.
-      [...shadowRoot.querySelectorAll('content')].forEach(function(content) {
-        [...content.getDistributedNodes()].forEach(function(child) {
-          (child.nodeType === Node.ELEMENT_NODE) && result.add(child);
+      const slots = shadowRoot.querySelectorAll('slot');
+      for (let i = 0; i < slots.length; i++) {
+        const nodes = slots[i].assignedNodes({
+          flatten: true
         });
-      });
+        for (let j = 0; j < nodes.length; j++) {
+          (nodes[j].nodeType === Node.ELEMENT_NODE) && result.add(nodes[j]);
+        }
+      }
       return result;
     }
 

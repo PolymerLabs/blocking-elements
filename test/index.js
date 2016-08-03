@@ -33,9 +33,9 @@ describe('Basic', function() {
   });
 
   afterEach(function() {
-    fixture.destroy();
     // empty blocking elements
     emptyBlockingElements();
+    fixture.destroy();
   });
 
   it('push() adds an element to the stack, remove() removes it', function() {
@@ -88,17 +88,19 @@ describe('Basic', function() {
   });
 
   it('update elements in shadow dom', function() {
-    if (!outer.createShadowRoot) {
+    if (!outer.attachShadow) {
       console.log('test skipped because Shadow DOM is not supported by the browser');
       return;
     }
     // Prepare template with a button and distributed content.
     const t = document.createElement('template');
     t.content.appendChild(document.createElement('button'));
-    t.content.appendChild(document.createElement('content'));
+    t.content.appendChild(document.createElement('slot'));
 
     // Create shadow root for fixture, add template.
-    const root = outer.createShadowRoot();
+    const root = outer.attachShadow({
+      mode: 'open'
+    });
     const clone = document.importNode(t.content, true);
     root.appendChild(clone);
 
@@ -118,7 +120,7 @@ describe('Basic', function() {
     assert.equal(document.$blockingElements.all.length, 2);
     assert.equal(document.$blockingElements.top, shadowBtn);
     assert.equal(shadowBtn.inert, false, 'button in shadow dom active');
-    assert.equal(shadowBtn.nextElementSibling.inert, true, 'button sibling (content) inert');
+    assert.equal(shadowBtn.nextElementSibling.inert, true, 'button sibling (slot) inert');
     assert.equal(outer.children[0].inert, false, '1st child inert restored');
     assert.equal(outer.children[1].inert, false, '2nd child inert restored');
     assert.equal(outer.children[2].inert, false, '3rd child inert restored');
