@@ -280,7 +280,7 @@
      * @private
      */
     static[IS_INERT_FN](element) {
-      return element.hasAttribute('inert');
+      return !!element.inert;
     }
 
     /**
@@ -292,12 +292,6 @@
     static[SET_INERT_FN](element, inert) {
       // Update JS property.
       element.inert = inert;
-      // Reflect to attribute.
-      if (inert) {
-        element.setAttribute('inert', '');
-      } else {
-        element.removeAttribute('inert');
-      }
     }
   }
 
