@@ -17,6 +17,7 @@ limitations under the License.
   <meta charset="utf-8">
   <title>blockingElements polyfill test page</title>
   <link rel="import" href="../blocking-elements.html">
+  <link rel="import" href="logger.html">
 
   <style>
     .container {
@@ -102,10 +103,7 @@ limitations under the License.
       }
       var checked = target.checked;
       container.classList[checked ? 'add' : 'remove']('blocking');
-      const method = checked ? 'push' : 'remove';
-      console.time(method);
-      document.$blockingElements[method](container);
-      console.timeEnd(method);
+      document.$blockingElements[evt.target.checked ? 'push' : 'remove'](container);
     }
   </script>
 
