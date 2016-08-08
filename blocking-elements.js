@@ -239,6 +239,7 @@
         if (current.nodeType === Node.ELEMENT_NODE) {
           parents.push(current);
         }
+        // ShadowDom v1
         if (current.assignedSlot) {
           // Collect slots from deepest slot to top.
           while ((current = current.assignedSlot)) {
@@ -246,9 +247,20 @@
           }
           // Continue the search on the top slot.
           current = parents.pop();
-        } else {
-          current = current.parentNode || current.host;
+          continue;
         }
+        // ShadowDom v0
+        const insertionPoints = current.getDestinationInsertionPoints ?
+          current.getDestinationInsertionPoints() : [];
+        if (insertionPoints.length) {
+          for (let i = 0; i < insertionPoints.length - 1; i++) {
+            parents.push(current);
+          }
+          // Continue the search on the top content.
+          current = insertionPoints[insertionPoints.length - 1];
+          continue;
+        }
+        current = current.parentNode || current.host;
       }
       return parents;
     }
@@ -261,13 +273,26 @@
      */
     static[GET_DISTRIB_CHILDREN_FN](shadowRoot) {
       const result = new Set();
+      // ShadowDom v1
       const slots = shadowRoot.querySelectorAll('slot');
       for (let i = 0; i < slots.length; i++) {
         const nodes = slots[i].assignedNodes({
           flatten: true
         });
         for (let j = 0; j < nodes.length; j++) {
-          (nodes[j].nodeType === Node.ELEMENT_NODE) && result.add(nodes[j]);
+          if (nodes[j].nodeType === Node.ELEMENT_NODE) {
+            result.add(nodes[j]);
+          }
+        }
+      }
+      // ShadowDom v0
+      const contents = shadowRoot.querySelectorAll('content');
+      for (let i = 0; i < contents.length; i++) {
+        const nodes = contents[i].getDistributedNodes();
+        for (let j = 0; j < nodes.length; j++) {
+          if (nodes[j].nodeType === Node.ELEMENT_NODE) {
+            result.add(nodes[j]);
+          }
         }
       }
       return result;

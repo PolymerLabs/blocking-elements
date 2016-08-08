@@ -30,6 +30,11 @@ limitations under the License.
         padding: 5px;
         margin: 5px;
       }
+
+      :host(.blocking) {
+        outline: 9999px solid rgba(0, 0, 0, 0.5);
+      }
+
       label {
         display: block;
         margin-bottom: 5px;
@@ -38,7 +43,7 @@ limitations under the License.
     <label>
       <input id="toggle" type="checkbox"> Make blocking element
     </label>
-    <slot id="xtrapfocus"></slot>
+    <content id="xtrapfocus"></content>
   </template>
 
   <template id="x-a">
@@ -52,7 +57,7 @@ limitations under the License.
     </style>
     <button>x-a</button>
     <x-trap-focus class="in-x-a">
-      <slot id="xa"></slot>
+      <content id="xa"></content>
     </x-trap-focus>
   </template>
 
@@ -69,7 +74,7 @@ limitations under the License.
     <x-trap-focus class="in-x-b">
       <x-a class="in-x-b">
         <button>in x-b</button>
-        <slot id="xb"></slot>
+        <content id="xb"></content>
       </x-a>
     </x-trap-focus>
   </template>
@@ -78,17 +83,21 @@ limitations under the License.
     (function() {
       'use strict';
 
+      if (!Element.prototype.createShadowRoot) {
+        console.warn('ShadowDom v0 is not supported by this browser.');
+        return;
+      }
+
       class XTrapFocus extends HTMLElement {
         connectedCallback() {
           const t = document.querySelector('#x-trap-focus');
           const clone = document.importNode(t.content, true);
           clone.querySelector('#toggle').addEventListener('change', this._toggleTrap.bind(this));
-          this.attachShadow({
-            mode: 'open'
-          }).appendChild(clone);
+          this.createShadowRoot().appendChild(clone);
         }
 
         _toggleTrap(evt) {
+          this.classList[evt.target.checked ? 'add' : 'remove']('blocking');
           const method = evt.target.checked ? 'push' : 'remove';
           console.time(method);
           document.$blockingElements[method](this);
@@ -100,9 +109,7 @@ limitations under the License.
       class XA extends HTMLElement {
         connectedCallback() {
           const clone = document.importNode(document.getElementById('x-a').content, true);
-          this.attachShadow({
-            mode: 'open'
-          }).appendChild(clone);
+          this.createShadowRoot().appendChild(clone);
         }
       }
       customElements.define('x-a', XA);
@@ -110,9 +117,7 @@ limitations under the License.
       class XB extends HTMLElement {
         connectedCallback() {
           const clone = document.importNode(document.getElementById('x-b').content, true);
-          this.attachShadow({
-            mode: 'open'
-          }).appendChild(clone);
+          this.createShadowRoot().appendChild(clone);
         }
       }
       customElements.define('x-b', XB);
