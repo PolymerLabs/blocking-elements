@@ -86,8 +86,8 @@ limitations under the License.
     Check these other demos:
     <ul>
       <li><a href="nytimes.html">lots of content</a></li>
-      <li><a href="ce-v0.html">with Custom Elements (ShadowDom v0)</a></li>
-      <li><a href="ce-v1.html">with Custom Elements (ShadowDom v1)</a></li>
+      <li><a href="ce.html?ce=v0">with Custom Elements (ShadowDom v0)</a></li>
+      <li><a href="ce.html?ce=v1">with Custom Elements (ShadowDom v1)</a></li>
     </ul>
 
   </p>
@@ -103,7 +103,7 @@ limitations under the License.
       }
       var checked = target.checked;
       container.classList[checked ? 'add' : 'remove']('blocking');
-      document.$blockingElements[evt.target.checked ? 'push' : 'remove'](container);
+      document.$blockingElements[checked ? 'push' : 'remove'](container);
     }
   </script>
 

@@ -53,7 +53,7 @@ limitations under the License.
       }
       var checked = target.checked;
       container.classList[checked ? 'add' : 'remove']('blocking');
-      document.$blockingElements[evt.target.checked ? 'push' : 'remove'](container);
+      document.$blockingElements[checked ? 'push' : 'remove'](container);
     }
   </script>
 
