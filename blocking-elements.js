@@ -34,7 +34,6 @@
    * `BlockingElements` manages a stack of elements that inert the interaction
    * outside them. The top element is the interactive part of the document.
    * The stack can be updated with the methods `push, remove, pop`.
-   * @class
    */
   class BlockingElements {
     constructor() {
@@ -58,13 +57,11 @@
      * the blocking elements
      */
     destructor() {
-      // Loop from the last to first to gradually update the tree up to body.
-      const elems = this[BLOCKING_ELEMS];
-      for (let i = elems.length - 1; i >= 0; i--) {
-        BlockingElements[TOP_CHANGED_FN](elems[i - 1], elems[i], this[ALREADY_INERT_ELEMS]);
-      }
-      delete this[BLOCKING_ELEMS];
-      delete this[ALREADY_INERT_ELEMS];
+      // Pretend like top changed from current top to null in order to reset
+      // all its parents `inert`.
+      BlockingElements[TOP_CHANGED_FN](null, this.top);
+      this[BLOCKING_ELEMS] = null;
+      this[ALREADY_INERT_ELEMS] = null;
     }
 
     /**
@@ -105,12 +102,13 @@
      */
     remove(element) {
       const i = this[BLOCKING_ELEMS].indexOf(element);
-      if (i !== -1) {
-        this[BLOCKING_ELEMS].splice(i, 1);
-        // Top changed only if the removed element was the top element.
-        if (i === this[BLOCKING_ELEMS].length) {
-          BlockingElements[TOP_CHANGED_FN](this.top, element, this[ALREADY_INERT_ELEMS]);
-        }
+      if (i === -1) {
+        return;
+      }
+      this[BLOCKING_ELEMS].splice(i, 1);
+      // Top changed only if the removed element was the top element.
+      if (i === this[BLOCKING_ELEMS].length) {
+        BlockingElements[TOP_CHANGED_FN](this.top, element, this[ALREADY_INERT_ELEMS]);
       }
     }
 
@@ -273,13 +271,14 @@
      */
     static[GET_DISTRIB_CHILDREN_FN](shadowRoot) {
       const result = new Set();
+      let i, j, nodes;
       // ShadowDom v1
       const slots = shadowRoot.querySelectorAll('slot');
-      for (let i = 0; i < slots.length; i++) {
-        const nodes = slots[i].assignedNodes({
+      for (i = 0; i < slots.length; i++) {
+        nodes = slots[i].assignedNodes({
           flatten: true
         });
-        for (let j = 0; j < nodes.length; j++) {
+        for (j = 0; j < nodes.length; j++) {
           if (nodes[j].nodeType === Node.ELEMENT_NODE) {
             result.add(nodes[j]);
           }
@@ -287,9 +286,9 @@
       }
       // ShadowDom v0
       const contents = shadowRoot.querySelectorAll('content');
-      for (let i = 0; i < contents.length; i++) {
-        const nodes = contents[i].getDistributedNodes();
-        for (let j = 0; j < nodes.length; j++) {
+      for (i = 0; i < contents.length; i++) {
+        nodes = contents[i].getDistributedNodes();
+        for (j = 0; j < nodes.length; j++) {
           if (nodes[j].nodeType === Node.ELEMENT_NODE) {
             result.add(nodes[j]);
           }
