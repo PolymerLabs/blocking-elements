@@ -113,16 +113,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         document.$blockingElements.push(container.children[0]);
         assert.equal(document.$blockingElements.all.length, 1);
         assert.equal(document.$blockingElements.top, container.children[0]);
-        assert.notEqual(container.children[0].inert, true, '1st child active');
-        assert.equal(container.children[1].inert, true, '2nd child inert');
-        assert.equal(container.children[2].inert, true, '3rd child inert');
+        assert.isFalse(container.children[0].hasAttribute('inert'), '1st child active');
+        assert.isTrue(container.children[1].hasAttribute('inert'), '2nd child inert');
+        assert.isTrue(container.children[2].hasAttribute('inert'), '3rd child inert');
 
         document.$blockingElements.push(container.children[1]);
         assert.equal(document.$blockingElements.all.length, 2);
         assert.equal(document.$blockingElements.top, container.children[1]);
-        assert.equal(container.children[0].inert, true, '1st child inert');
-        assert.notEqual(container.children[1].inert, true, '2nd child active');
-        assert.equal(container.children[2].inert, true, '3rd child inert');
+        assert.isTrue(container.children[0].hasAttribute('inert'), '1st child inert');
+        assert.isFalse(container.children[1].hasAttribute('inert'), '2nd child active');
+        assert.isTrue(container.children[2].hasAttribute('inert'), '3rd child inert');
       });
 
     });
@@ -146,16 +146,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.equal(document.$blockingElements.top, inner.children[0]);
 
         // node and its parents should be active
-        assert.notEqual(inner.children[0].inert, true, 'inner child active');
-        assert.notEqual(inner.inert, true, 'inner active');
+        assert.isFalse(inner.children[0].hasAttribute('inert'), 'inner child active');
+        assert.isFalse(inner.hasAttribute('inert'), 'inner active');
 
         // Its siblings and parent's siblings should be inert.
         for (var i = 1; i < inner.children.length; i++) {
-          assert.equal(inner.children[i].inert, true, 'inner sibling inert');
+          assert.isTrue(inner.children[i].hasAttribute('inert'), 'inner sibling inert');
         }
-        assert.equal(container.children[0].inert, true, '1st child inert');
-        assert.equal(container.children[1].inert, true, '2nd child inert');
-        assert.equal(container.children[2].inert, true, '3rd child inert');
+        assert.isTrue(container.children[0].hasAttribute('inert'), '1st child inert');
+        assert.isTrue(container.children[1].hasAttribute('inert'), '2nd child inert');
+        assert.isTrue(container.children[2].hasAttribute('inert'), '3rd child inert');
       });
     });
   </script>
