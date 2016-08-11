@@ -17,11 +17,12 @@
 
 (function(document) {
 
-  /* Symbols for blocking elements and already inert elements */
+  /* Symbols for private properties */
+  const _topElement = Symbol();
   const _blockingElements = Symbol();
   const _alreadyInertElements = Symbol();
 
-  /* Symbols for static methods */
+  /* Symbols for private static methods */
   const _topChanged = Symbol();
   const _setInertToSiblingsOfElement = Symbol();
   const _getParents = Symbol();
@@ -37,12 +38,20 @@
    */
   class BlockingElements {
     constructor() {
+
       /**
-       * The blocking elements.
-       * @type {Array<HTMLElement>}
+       * The top blocking element.
+       * @type {HTMLElement}
        * @private
        */
-      this[_blockingElements] = [];
+      this[_topElement] = null;
+
+      /**
+       * The blocking elements.
+       * @type {Set<HTMLElement>}
+       * @private
+       */
+      this[_blockingElements] = new Set();
 
       /**
        * Elements that are already inert before the first blocking element is pushed.
@@ -60,16 +69,9 @@
       // Pretend like top changed from current top to null in order to reset
       // all its parents `inert`.
       BlockingElements[_topChanged](null, this.top);
+      this[_topElement] = null;
       this[_blockingElements] = null;
       this[_alreadyInertElements] = null;
-    }
-
-    /**
-     * A copy of the blocking elements.
-     * @type {Array<HTMLElement>}
-     */
-    get all() {
-      return Array.prototype.slice.call(this[_blockingElements]);
     }
 
     /**
@@ -77,8 +79,7 @@
      * @type {HTMLElement|null}
      */
     get top() {
-      const elems = this[_blockingElements];
-      return elems[elems.length - 1] || null;
+      return this[_topElement];
     }
 
     /**
@@ -86,30 +87,35 @@
      * @param {!HTMLElement} element
      */
     push(element) {
-      const i = this[_blockingElements].indexOf(element);
-      if (i !== -1) {
+      if (this.has(element)) {
         console.warn('element already added in document.blockingElements');
         return;
       }
-      const oldTop = this.top;
-      this[_blockingElements].push(element);
-      BlockingElements[_topChanged](element, oldTop, this[_alreadyInertElements]);
+      this[_blockingElements].add(element);
+      BlockingElements[_topChanged](element, this.top, this[_alreadyInertElements]);
+      this[_topElement] = element;
     }
 
     /**
-     * Removes the element from the blocking elements.
+     * Removes the element from the blocking elements. Returns true if the element
+     * was removed.
      * @param {!HTMLElement} element
+     * @returns {boolean}
      */
     remove(element) {
-      const i = this[_blockingElements].indexOf(element);
-      if (i === -1) {
-        return;
+      if (!this.has(element)) {
+        return false;
       }
-      this[_blockingElements].splice(i, 1);
+      this[_blockingElements].delete(element);
       // Top changed only if the removed element was the top element.
-      if (i === this[_blockingElements].length) {
+      if (element === this.top) {
         BlockingElements[_topChanged](this.top, element, this[_alreadyInertElements]);
+        // Update top element.
+        let newTopElement = null;
+        for(newTopElement of this[_blockingElements]);
+        this[_topElement] = newTopElement;
       }
+      return true;
     }
 
     /**
@@ -118,8 +124,17 @@
      */
     pop() {
       const top = this.top;
-      top && this.remove(top);
+      this.remove(top);
       return top;
+    }
+
+    /**
+     * Returns if the element is a blocking element.
+     * @param {!HTMLElement} element
+     * @returns {boolean}
+     */
+    has(element) {
+      return this[_blockingElements].has(element);
     }
 
     /**

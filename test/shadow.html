@@ -81,7 +81,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         // Distributed element as a blocking element.
         document.$blockingElements.push(container.children[0]);
-        assert.equal(document.$blockingElements.all.length, 1);
         assert.equal(document.$blockingElements.top, container.children[0]);
         assert.isTrue(shadowBtn.hasAttribute('inert'), 'button in shadow dom inert');
         assert.isFalse(container.children[0].hasAttribute('inert'), '1st child active');
@@ -90,7 +89,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         // Button in shadow dom as a blocking element, its siblings should be inert
         document.$blockingElements.push(shadowBtn);
-        assert.equal(document.$blockingElements.all.length, 2);
+        assert.isTrue(document.$blockingElements.has(container.children[0]), '1st child is a blocking element');
         assert.equal(document.$blockingElements.top, shadowBtn);
         assert.isFalse(shadowBtn.hasAttribute('inert'), 'button in shadow dom active');
         assert.isTrue(shadowBtn.nextElementSibling.hasAttribute('inert'), 'button sibling (slot) inert');
@@ -129,7 +128,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         // Distributed element as a blocking element.
         document.$blockingElements.push(container.children[0]);
-        assert.equal(document.$blockingElements.all.length, 1);
         assert.equal(document.$blockingElements.top, container.children[0]);
         assert.isTrue(shadowBtn.hasAttribute('inert'), 'button in shadow dom inert');
         assert.isFalse(container.children[0].hasAttribute('inert'), '1st child active');
@@ -138,7 +136,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         // Button in shadow dom as a blocking element, its siblings should be inert
         document.$blockingElements.push(shadowBtn);
-        assert.equal(document.$blockingElements.all.length, 2);
+        assert.isTrue(document.$blockingElements.has(container.children[0]), '1st child is a blocking element');
         assert.equal(document.$blockingElements.top, shadowBtn);
         assert.isFalse(shadowBtn.hasAttribute('inert'), 'button in shadow dom active');
         assert.isTrue(shadowBtn.nextElementSibling.hasAttribute('inert'), 'button sibling (slot) inert');
