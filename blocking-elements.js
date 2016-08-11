@@ -109,11 +109,10 @@
       this[_blockingElements].delete(element);
       // Top changed only if the removed element was the top element.
       if (element === this.top) {
-        BlockingElements[_topChanged](this.top, element, this[_alreadyInertElements]);
-        // Update top element.
-        let newTopElement = null;
-        for(newTopElement of this[_blockingElements]);
-        this[_topElement] = newTopElement;
+        let newTop = null;
+        for(newTop of this[_blockingElements]);
+        this[_topElement] = newTop;
+        BlockingElements[_topChanged](newTop, element, this[_alreadyInertElements]);
       }
       return true;
     }
