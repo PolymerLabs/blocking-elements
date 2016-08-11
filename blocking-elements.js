@@ -67,8 +67,8 @@
      */
     destructor() {
       // Pretend like top changed from current top to null in order to reset
-      // all its parents `inert`.
-      BlockingElements[_topChanged](null, this.top);
+      // all its parents inertness. Ensure we keep inert what was already inert!
+      BlockingElements[_topChanged](null, this[_topElement], this[_alreadyInertElements]);
       this[_topElement] = null;
       this[_blockingElements] = null;
       this[_alreadyInertElements] = null;
@@ -124,7 +124,7 @@
      */
     pop() {
       const top = this.top;
-      this.remove(top);
+      top && this.remove(top);
       return top;
     }
 
