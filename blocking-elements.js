@@ -18,17 +18,17 @@
 (function(document) {
 
   /* Symbols for blocking elements and already inert elements */
-  const BLOCKING_ELEMS = Symbol('blockingElements');
-  const ALREADY_INERT_ELEMS = Symbol('alreadyInertElements');
+  const _blockingElements = Symbol();
+  const _alreadyInertElements = Symbol();
 
   /* Symbols for static methods */
-  const TOP_CHANGED_FN = Symbol('topChanged');
-  const NOT_INERTABLE_FN = Symbol('notInertable');
-  const SET_SIBLINGS_INERT_FN = Symbol('setInertToSiblingsOfElement');
-  const GET_PARENTS_FN = Symbol('getParents');
-  const GET_DISTRIB_CHILDREN_FN = Symbol('getDistributedChildren');
-  const IS_INERT_FN = Symbol('isInert');
-  const SET_INERT_FN = Symbol('setInert');
+  const _topChanged = Symbol();
+  const _setInertToSiblingsOfElement = Symbol();
+  const _getParents = Symbol();
+  const _getDistributedChildren = Symbol();
+  const _isInertable = Symbol();
+  const _isInert = Symbol();
+  const _setInert = Symbol();
 
   /**
    * `BlockingElements` manages a stack of elements that inert the interaction
@@ -42,14 +42,14 @@
        * @type {Array<HTMLElement>}
        * @private
        */
-      this[BLOCKING_ELEMS] = [];
+      this[_blockingElements] = [];
 
       /**
        * Elements that are already inert before the first blocking element is pushed.
        * @type {Set<HTMLElement>}
        * @private
        */
-      this[ALREADY_INERT_ELEMS] = new Set();
+      this[_alreadyInertElements] = new Set();
     }
 
     /**
@@ -59,9 +59,9 @@
     destructor() {
       // Pretend like top changed from current top to null in order to reset
       // all its parents `inert`.
-      BlockingElements[TOP_CHANGED_FN](null, this.top);
-      this[BLOCKING_ELEMS] = null;
-      this[ALREADY_INERT_ELEMS] = null;
+      BlockingElements[_topChanged](null, this.top);
+      this[_blockingElements] = null;
+      this[_alreadyInertElements] = null;
     }
 
     /**
@@ -69,7 +69,7 @@
      * @type {Array<HTMLElement>}
      */
     get all() {
-      return Array.prototype.slice.call(this[BLOCKING_ELEMS]);
+      return Array.prototype.slice.call(this[_blockingElements]);
     }
 
     /**
@@ -77,7 +77,7 @@
      * @type {HTMLElement|null}
      */
     get top() {
-      const elems = this[BLOCKING_ELEMS];
+      const elems = this[_blockingElements];
       return elems[elems.length - 1] || null;
     }
 
@@ -86,14 +86,14 @@
      * @param {!HTMLElement} element
      */
     push(element) {
-      const i = this[BLOCKING_ELEMS].indexOf(element);
+      const i = this[_blockingElements].indexOf(element);
       if (i !== -1) {
         console.warn('element already added in document.blockingElements');
         return;
       }
       const oldTop = this.top;
-      this[BLOCKING_ELEMS].push(element);
-      BlockingElements[TOP_CHANGED_FN](element, oldTop, this[ALREADY_INERT_ELEMS]);
+      this[_blockingElements].push(element);
+      BlockingElements[_topChanged](element, oldTop, this[_alreadyInertElements]);
     }
 
     /**
@@ -101,14 +101,14 @@
      * @param {!HTMLElement} element
      */
     remove(element) {
-      const i = this[BLOCKING_ELEMS].indexOf(element);
+      const i = this[_blockingElements].indexOf(element);
       if (i === -1) {
         return;
       }
-      this[BLOCKING_ELEMS].splice(i, 1);
+      this[_blockingElements].splice(i, 1);
       // Top changed only if the removed element was the top element.
-      if (i === this[BLOCKING_ELEMS].length) {
-        BlockingElements[TOP_CHANGED_FN](this.top, element, this[ALREADY_INERT_ELEMS]);
+      if (i === this[_blockingElements].length) {
+        BlockingElements[_topChanged](this.top, element, this[_alreadyInertElements]);
       }
     }
 
@@ -134,11 +134,11 @@
      * @param {!Set<HTMLElement>} alreadyInertElems Elements to be kept inert.
      * @private
      */
-    static[TOP_CHANGED_FN](newTop, oldTop, alreadyInertElems) {
-      const oldElParents = oldTop ? this[GET_PARENTS_FN](oldTop) : [];
-      const newElParents = newTop ? this[GET_PARENTS_FN](newTop) : [];
+    static[_topChanged](newTop, oldTop, alreadyInertElems) {
+      const oldElParents = oldTop ? this[_getParents](oldTop) : [];
+      const newElParents = newTop ? this[_getParents](newTop) : [];
       const elemsToSkip = newTop && newTop.shadowRoot ?
-        this[GET_DISTRIB_CHILDREN_FN](newTop.shadowRoot) : null;
+        this[_getDistributedChildren](newTop.shadowRoot) : null;
       // Loop from top to deepest elements, so we find the common parents and
       // avoid setting them twice.
       while (oldElParents.length || newElParents.length) {
@@ -150,17 +150,17 @@
         // Same parent, set only these 2 children.
         if (oldElParent && newElParent &&
           oldElParent.parentNode === newElParent.parentNode) {
-          if (!oldTop && this[IS_INERT_FN](oldElParent)) {
+          if (!oldTop && this[_isInert](oldElParent)) {
             alreadyInertElems.add(oldElParent);
           }
-          this[SET_INERT_FN](oldElParent, true);
-          this[SET_INERT_FN](newElParent, alreadyInertElems.has(newElParent));
+          this[_setInert](oldElParent, true);
+          this[_setInert](newElParent, alreadyInertElems.has(newElParent));
         } else {
-          oldElParent && this[SET_SIBLINGS_INERT_FN](oldElParent, false, elemsToSkip,
+          oldElParent && this[_setInertToSiblingsOfElement](oldElParent, false, elemsToSkip,
             alreadyInertElems);
           // Collect the already inert elements only if it is the first blocking
           // element (if oldTop = null)
-          newElParent && this[SET_SIBLINGS_INERT_FN](newElParent, true, elemsToSkip,
+          newElParent && this[_setInertToSiblingsOfElement](newElParent, true, elemsToSkip,
             oldTop ? null : alreadyInertElems);
         }
       }
@@ -175,7 +175,7 @@
      * @returns {boolean}
      * @private
      */
-    static[NOT_INERTABLE_FN](element) {
+    static[_isInertable](element) {
       return /^(style|template|script)$/.test(element.localName);
     }
 
@@ -190,34 +190,34 @@
      * @param {Set<HTMLElement>} alreadyInertElems
      * @private
      */
-    static[SET_SIBLINGS_INERT_FN](element, inert, elemsToSkip, alreadyInertElems) {
+    static[_setInertToSiblingsOfElement](element, inert, elemsToSkip, alreadyInertElems) {
       // Previous siblings.
       let sibling = element;
       while ((sibling = sibling.previousElementSibling)) {
         // If not inertable or to be skipped, skip.
-        if (this[NOT_INERTABLE_FN](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
+        if (this[_isInertable](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
           continue;
         }
         // Should be collected since already inerted.
-        if (alreadyInertElems && inert && this[IS_INERT_FN](sibling)) {
+        if (alreadyInertElems && inert && this[_isInert](sibling)) {
           alreadyInertElems.add(sibling);
         }
         // Should be kept inert if it's in `alreadyInertElems`.
-        this[SET_INERT_FN](sibling, inert || (alreadyInertElems && alreadyInertElems.has(sibling)));
+        this[_setInert](sibling, inert || (alreadyInertElems && alreadyInertElems.has(sibling)));
       }
       // Next siblings.
       sibling = element;
       while ((sibling = sibling.nextElementSibling)) {
         // If not inertable or to be skipped, skip.
-        if (this[NOT_INERTABLE_FN](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
+        if (this[_isInertable](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
           continue;
         }
         // Should be collected since already inerted.
-        if (alreadyInertElems && inert && this[IS_INERT_FN](sibling)) {
+        if (alreadyInertElems && inert && this[_isInert](sibling)) {
           alreadyInertElems.add(sibling);
         }
         // Should be kept inert if it's in `alreadyInertElems`.
-        this[SET_INERT_FN](sibling, inert || (alreadyInertElems && alreadyInertElems.has(sibling)));
+        this[_setInert](sibling, inert || (alreadyInertElems && alreadyInertElems.has(sibling)));
       }
     }
 
@@ -228,7 +228,7 @@
      * @returns {Array<HTMLElement>}
      * @private
      */
-    static[GET_PARENTS_FN](element) {
+    static[_getParents](element) {
       const parents = [];
       let current = element;
       // Stop to body.
@@ -269,7 +269,7 @@
      * @returns {Set<HTMLElement>}
      * @private
      */
-    static[GET_DISTRIB_CHILDREN_FN](shadowRoot) {
+    static[_getDistributedChildren](shadowRoot) {
       const result = new Set();
       let i, j, nodes;
       // ShadowDom v1
@@ -303,7 +303,7 @@
      * @returns {boolean}
      * @private
      */
-    static[IS_INERT_FN](element) {
+    static[_isInert](element) {
       return element.hasAttribute('inert');
     }
 
@@ -313,7 +313,7 @@
      * @param {boolean} inert
      * @private
      */
-    static[SET_INERT_FN](element, inert) {
+    static[_setInert](element, inert) {
       if (inert) {
         element.setAttribute('inert','');
       } else {
