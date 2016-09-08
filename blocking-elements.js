@@ -288,6 +288,8 @@
             }
           }
         }
+        // No need to search for <content>.
+        return result;
       }
       // ShadowDom v0
       const contents = shadowRoot.querySelectorAll('content');
