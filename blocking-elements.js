@@ -277,23 +277,27 @@
       let i, j, nodes;
       // ShadowDom v1
       const slots = shadowRoot.querySelectorAll('slot');
-      for (i = 0; i < slots.length; i++) {
-        nodes = slots[i].assignedNodes({
-          flatten: true
-        });
-        for (j = 0; j < nodes.length; j++) {
-          if (nodes[j].nodeType === Node.ELEMENT_NODE) {
-            result.add(nodes[j]);
+      if (slots.length && slots[0].assignedNodes) {
+        for (i = 0; i < slots.length; i++) {
+          nodes = slots[i].assignedNodes({
+            flatten: true
+          });
+          for (j = 0; j < nodes.length; j++) {
+            if (nodes[j].nodeType === Node.ELEMENT_NODE) {
+              result.add(nodes[j]);
+            }
           }
         }
       }
       // ShadowDom v0
       const contents = shadowRoot.querySelectorAll('content');
-      for (i = 0; i < contents.length; i++) {
-        nodes = contents[i].getDistributedNodes();
-        for (j = 0; j < nodes.length; j++) {
-          if (nodes[j].nodeType === Node.ELEMENT_NODE) {
-            result.add(nodes[j]);
+      if (contents.length && contents[0].getDistributedNodes) {
+        for (i = 0; i < contents.length; i++) {
+          nodes = contents[i].getDistributedNodes();
+          for (j = 0; j < nodes.length; j++) {
+            if (nodes[j].nodeType === Node.ELEMENT_NODE) {
+              result.add(nodes[j]);
+            }
           }
         }
       }
@@ -318,7 +322,7 @@
      */
     static[_setInert](element, inert) {
       if (inert) {
-        element.setAttribute('inert','');
+        element.setAttribute('inert', '');
       } else {
         element.removeAttribute('inert');
       }
