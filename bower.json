@@ -1,5 +1,6 @@
 {
   "name": "blockingElements",
+  "version": "0.0.1",
   "description": "A polyfill for the proposed blocking elments stack API",
   "main": "blocking-elements.html",
   "authors": [
@@ -14,20 +15,14 @@
   ],
   "homepage": "https://github.com/PolymerLabs/blockingElements",
   "private": true,
-  "ignore": [
-    "**/.*",
-    "node_modules",
-    "bower_components",
-    "test",
-    "tests"
-  ],
   "devDependencies": {
-    "test-fixture": "PolymerElements/test-fixture#ce-v1",
+    "test-fixture": "PolymerElements/test-fixture#custom-elements-v1",
     "inert": "WICG/inert#master",
     "web-component-tester": "^4.0.0",
     "webcomponentsjs": "webcomponents/webcomponentsjs#v1-polymer-edits"
   },
+  "ignore": [],
   "resolutions": {
-    "test-fixture": "ce-v1"
+    "test-fixture": "custom-elements-v1"
   }
 }
