@@ -313,7 +313,7 @@
      * @private
      */
     static[_isInert](element) {
-      return element.hasAttribute('inert');
+      return element.inert;
     }
 
     /**
@@ -323,11 +323,10 @@
      * @private
      */
     static[_setInert](element, inert) {
-      if (inert) {
-        element.setAttribute('inert', '');
-      } else {
-        element.removeAttribute('inert');
-      }
+      // Prefer setting the property over the attribute since the inert spec
+      // doesn't specify if it should be reflected.
+      // https://html.spec.whatwg.org/multipage/interaction.html#inert
+      element.inert = inert;
     }
   }
 
