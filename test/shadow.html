@@ -1,0 +1,153 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+
+<head>
+
+  <title>blockingElements shadow</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../web-component-tester/browser.js"></script>
+  <script src="../../test-fixture/test-fixture-mocha.js"></script>
+
+  <link rel="import" href="../../test-fixture/test-fixture.html">
+  <link rel="import" href="../blocking-elements.html">
+
+</head>
+
+<body>
+
+  <template id="shadow-v0">
+    <button>inner button</button>
+    <content></content>
+  </template>
+
+  <template id="shadow-v1">
+    <button>inner button</button>
+    <slot></slot>
+  </template>
+
+  <test-fixture id="basic">
+    <template>
+      <div>
+        <button>button</button>
+        <button>button</button>
+        <button>button</button>
+      </div>
+    </template>
+  </test-fixture>
+
+  <script>
+    function emptyBlockingElements() {
+      while (document.$blockingElements.pop()) {
+        // keep popping!
+      }
+    }
+
+    suite('ShadowDom v0', function() {
+      if (!Element.prototype.createShadowRoot) {
+        console.log('ShadowDOM v0 is not supported by the browser.');
+        return;
+      }
+
+      let container;
+
+      setup(function() {
+        container = fixture('basic');
+        const template = document.querySelector('template#shadow-v0');
+
+        // Clone template and add it to shadow root.
+        const clone = document.importNode(template.content, true);
+        container.createShadowRoot().appendChild(clone);
+      });
+
+      teardown(function() {
+        emptyBlockingElements();
+      });
+
+      test('update elements in shadow dom', function() {
+        const shadowBtn = container.shadowRoot.querySelector('button');
+
+        // Distributed element as a blocking element.
+        document.$blockingElements.push(container.children[0]);
+        assert.equal(document.$blockingElements.top, container.children[0]);
+        assert.isTrue(shadowBtn.inert, 'button in shadow dom inert');
+        assert.isNotOk(container.children[0].inert, '1st child active');
+        assert.isTrue(container.children[1].inert, '2nd child inert');
+        assert.isTrue(container.children[2].inert, '3rd child inert');
+
+        // Button in shadow dom as a blocking element, its siblings should be inert
+        document.$blockingElements.push(shadowBtn);
+        assert.isTrue(document.$blockingElements.has(container.children[0]), '1st child is a blocking element');
+        assert.equal(document.$blockingElements.top, shadowBtn);
+        assert.isNotOk(shadowBtn.inert, 'button in shadow dom active');
+        assert.isTrue(shadowBtn.nextElementSibling.inert, 'button sibling (slot) inert');
+        assert.isNotOk(container.children[0].inert, '1st child inert restored');
+        assert.isNotOk(container.children[1].inert, '2nd child inert restored');
+        assert.isNotOk(container.children[2].inert, '3rd child inert restored');
+      });
+
+    });
+
+    suite('ShadowDom v1', function() {
+      if (!Element.prototype.attachShadow) {
+        console.log('ShadowDOM v1 is not supported by the browser.');
+        return;
+      }
+
+      let container;
+
+      setup(function() {
+        container = fixture('basic');
+        const template = document.querySelector('template#shadow-v1');
+
+        // Clone template and add it to shadow root.
+        const clone = document.importNode(template.content, true);
+        container.attachShadow({
+          mode: 'open'
+        }).appendChild(clone);
+      });
+
+      teardown(function() {
+        emptyBlockingElements();
+      });
+
+      test('update elements in shadow dom', function() {
+        const shadowBtn = container.shadowRoot.querySelector('button');
+
+        // Distributed element as a blocking element.
+        document.$blockingElements.push(container.children[0]);
+        assert.equal(document.$blockingElements.top, container.children[0]);
+        assert.isTrue(shadowBtn.inert, 'button in shadow dom inert');
+        assert.isNotOk(container.children[0].inert, '1st child active');
+        assert.isTrue(container.children[1].inert, '2nd child inert');
+        assert.isTrue(container.children[2].inert, '3rd child inert');
+
+        // Button in shadow dom as a blocking element, its siblings should be inert
+        document.$blockingElements.push(shadowBtn);
+        assert.isTrue(document.$blockingElements.has(container.children[0]), '1st child is a blocking element');
+        assert.equal(document.$blockingElements.top, shadowBtn);
+        assert.isNotOk(shadowBtn.inert, 'button in shadow dom active');
+        assert.isTrue(shadowBtn.nextElementSibling.inert, 'button sibling (slot) inert');
+        assert.isNotOk(container.children[0].inert, '1st child inert restored');
+        assert.isNotOk(container.children[1].inert, '2nd child inert restored');
+        assert.isNotOk(container.children[2].inert, '3rd child inert restored');
+      });
+
+    });
+  </script>
+
+</body>
+
+</html>

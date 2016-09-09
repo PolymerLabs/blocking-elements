@@ -1,0 +1,111 @@
+<!--
+Copyright 2016 Google Inc. All rights reserved.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>blockingElements polyfill test page</title>
+  <script src="../../inert/inert.js"></script>
+  <script src="../blocking-elements.js"></script>
+
+  <style>
+    .container {
+      border: 1px solid gray;
+      padding: 10px;
+      margin: 10px;
+    }
+
+    .blocking {
+      outline: 9999px solid rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>blocking elements</h1>
+
+  <div class="container">
+    <label>
+      <input type="checkbox" onchange="toggleBlockingElement(this)"> Make blocking element
+    </label>
+  </div>
+
+  <div class="container">
+    <label>
+      <input type="checkbox" onchange="toggleBlockingElement(this)"> Make blocking element
+    </label>
+    <p>
+      <input>
+      <button>Button</button>
+    </p>
+
+    <div class="container">
+      <label>
+        <input type="checkbox" onchange="toggleBlockingElement(this)"> Make blocking element
+      </label>
+      <p>
+        <input>
+        <button>Button</button>
+      </p>
+
+      <div class="container">
+        <label>
+          <input type="checkbox" onchange="toggleBlockingElement(this)"> Make blocking element
+        </label>
+        <p>
+          <input>
+          <button>Button</button>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p>
+      Some inputs
+    </p>
+    <input>
+    <input inert placeholder="inert input">
+    <input>
+    <input>
+  </div>
+
+  <p>
+    Check these other demos:
+    <ul>
+      <li><a href="nytimes.html">lots of content</a></li>
+      <li><a href="ce.html?ce=v0">with Custom Elements (ShadowDom v0)</a></li>
+      <li><a href="ce.html?ce=v1">with Custom Elements (ShadowDom v1)</a></li>
+    </ul>
+
+  </p>
+
+  <script>
+    function toggleBlockingElement(target) {
+      var container = target;
+      while (!container.classList.contains('container')) {
+        container = container.parentNode;
+      }
+      if (!container) {
+        return;
+      }
+      var checked = target.checked;
+      container.classList[checked ? 'add' : 'remove']('blocking');
+      document.$blockingElements[checked ? 'push' : 'remove'](container);
+    }
+  </script>
+</body>
+
+</html>
