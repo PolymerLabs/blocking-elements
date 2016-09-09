@@ -5,7 +5,7 @@ Implementation of proposal <https://github.com/whatwg/html/issues/897>
 `document.$blockingElements` manages a stack of elements that inert the interaction outside them.
 
 - the stack can be updated with the methods `push(elem), remove(elem), pop(elem)`
-- the top element (`document.$blockingElements.top`) is the interactive part of the document
+- the top element (`document.$blockingElements.top`) and its subtree is the interactive part of the document
 - `has(elem)` returns if the element is a blocking element
 
 This polyfill will:
@@ -13,7 +13,7 @@ This polyfill will:
 - search for the path of the element to block up to `document.body`
 - set `inert` to all the siblings of each parent, skipping the parents and the element's distributed content (if any)
 
-Use this polyfill together with the [WICG/inert](https://github.com/WICG/inert) polyfill to disable interactions on the rest of the document. See the [demo page]() as an example.
+Use this polyfill together with the [WICG/inert](https://github.com/WICG/inert) polyfill to disable interactions on the rest of the document. See the [demo page](https://github.com/PolymerLabs/blockingElements/blob/master/demo/index.html) as an example.
 
 ## Why not listening to events that trigger focus change?
 
