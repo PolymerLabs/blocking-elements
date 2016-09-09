@@ -99,28 +99,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.equal(document.$blockingElements.top, null);
         const child = container.children[0];
         // Make children[1] inert
-        container.children[1].setAttribute('inert', '');
+        container.children[1].inert = true;
         // Push and remove children[0], see if inert is preserved.
         document.$blockingElements.push(child);
         assert.equal(document.$blockingElements.top, child);
         document.$blockingElements.remove(child);
         assert.equal(document.$blockingElements.top, null);
-        assert.isTrue(container.children[1].hasAttribute('inert'), 'inert preserved');
+        assert.isTrue(container.children[1].inert, 'inert preserved');
       });
 
       test('multiple push() update elements inertness', function() {
         document.$blockingElements.push(container.children[0]);
         assert.equal(document.$blockingElements.top, container.children[0]);
-        assert.isFalse(container.children[0].hasAttribute('inert'), '1st child active');
-        assert.isTrue(container.children[1].hasAttribute('inert'), '2nd child inert');
-        assert.isTrue(container.children[2].hasAttribute('inert'), '3rd child inert');
+        assert.isNotOk(container.children[0].inert, '1st child active');
+        assert.isTrue(container.children[1].inert, '2nd child inert');
+        assert.isTrue(container.children[2].inert, '3rd child inert');
 
         document.$blockingElements.push(container.children[1]);
         assert.isTrue(document.$blockingElements.has(container.children[0]), '1st child is a blocking element');
         assert.equal(document.$blockingElements.top, container.children[1], '2nd child is top blocking element');
-        assert.isTrue(container.children[0].hasAttribute('inert'), '1st child inert');
-        assert.isFalse(container.children[1].hasAttribute('inert'), '2nd child active');
-        assert.isTrue(container.children[2].hasAttribute('inert'), '3rd child inert');
+        assert.isTrue(container.children[0].inert, '1st child inert');
+        assert.isNotOk(container.children[1].inert, '2nd child active');
+        assert.isTrue(container.children[2].inert, '3rd child inert');
       });
 
     });
@@ -143,16 +143,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.equal(document.$blockingElements.top, inner.children[0]);
 
         // node and its parents should be active
-        assert.isFalse(inner.children[0].hasAttribute('inert'), 'inner child active');
-        assert.isFalse(inner.hasAttribute('inert'), 'inner active');
+        assert.isNotOk(inner.children[0].inert, 'inner child active');
+        assert.isNotOk(inner.inert, 'inner active');
 
         // Its siblings and parent's siblings should be inert.
         for (var i = 1; i < inner.children.length; i++) {
-          assert.isTrue(inner.children[i].hasAttribute('inert'), 'inner sibling inert');
+          assert.isTrue(inner.children[i].inert, 'inner sibling inert');
         }
-        assert.isTrue(container.children[0].hasAttribute('inert'), '1st child inert');
-        assert.isTrue(container.children[1].hasAttribute('inert'), '2nd child inert');
-        assert.isTrue(container.children[2].hasAttribute('inert'), '3rd child inert');
+        assert.isTrue(container.children[0].inert, '1st child inert');
+        assert.isTrue(container.children[1].inert, '2nd child inert');
+        assert.isTrue(container.children[2].inert, '3rd child inert');
       });
     });
   </script>
