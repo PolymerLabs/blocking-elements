@@ -123,6 +123,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.isTrue(container.children[2].inert, '3rd child inert');
       });
 
+      test('remove() handles elements not in the dom anymore', function() {
+        document.$blockingElements.push(container.children[0]);
+        assert.equal(document.$blockingElements.top, container.children[0]);
+        container.removeChild(container.children[0]);
+        document.$blockingElements.remove(container.children[0]);
+        assert.equal(document.$blockingElements.top, null);
+        assert.isNotOk(container.inert, 'container active');
+        assert.isNotOk(container.children[1].inert, '2nd child active');
+        assert.isNotOk(container.children[2].inert, '3rd child active');
+      });
+
     });
 
     suite('nested', function() {
