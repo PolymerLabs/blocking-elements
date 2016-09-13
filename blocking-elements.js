@@ -26,7 +26,7 @@
   const _setInertToSiblingsOfElement = Symbol();
   const _getParents = Symbol();
   const _getDistributedChildren = Symbol();
-  const _isInertable = Symbol();
+  const _isNotInertable = Symbol();
   const _isInert = Symbol();
   const _setInert = Symbol();
 
@@ -178,8 +178,8 @@
      * @returns {boolean}
      * @private
      */
-    static[_isInertable](element) {
-      return /^(style|template|script)$/.test(element.localName);
+    static[_isNotInertable](element) {
+      return /^(style|template|script|content|slot)$/.test(element.localName);
     }
 
     /**
@@ -198,7 +198,7 @@
       let sibling = element;
       while ((sibling = sibling.previousElementSibling)) {
         // If not inertable or to be skipped, skip.
-        if (this[_isInertable](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
+        if (this[_isNotInertable](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
           continue;
         }
         // Should be collected since already inerted.
@@ -212,7 +212,7 @@
       sibling = element;
       while ((sibling = sibling.nextElementSibling)) {
         // If not inertable or to be skipped, skip.
-        if (this[_isInertable](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
+        if (this[_isNotInertable](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
           continue;
         }
         // Should be collected since already inerted.
