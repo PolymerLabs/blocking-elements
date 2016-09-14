@@ -137,6 +137,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       });
 
+      test('destructor resets the document inertness', function() {
+        document.$blockingElements.push(container.children[0]);
+        // Destroy and then construct again.
+        document.$blockingElements.destructor();
+        document.$blockingElements = new document.$blockingElements.constructor();
+        assert.isNotOk(container.inert, 'container active');
+        // Remaining children should be active.
+        for (let i = 0; i < container.children.length; i++) {
+          assert.isNotOk(container.children[i].inert, 'sibling active');
+        }
+      });
+
     });
 
     suite('nested', function() {
