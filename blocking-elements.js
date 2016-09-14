@@ -151,7 +151,14 @@
       }
       // Same parent, just switch old & new inertness.
       if (i >= 0 && j >= 0 && oldParents[i + 1] === parents[j + 1]) {
-        //TODO(valdrin) update __inertedSiblings!
+        // Update siblings array.
+        const parentSiblings = oldParents[i + 1].__inertedSiblings;
+        if (!alreadyInertElems.has(oldParents[i])) {
+          parentSiblings.push(oldParents[i]);
+        }
+        const idx = parentSiblings.indexOf(parents[j]);
+        idx >= 0 && parentSiblings.splice(idx, 1);
+        // Flip inertness.
         this[_setInert](oldParents[i], true);
         this[_setInert](parents[j], alreadyInertElems.has(parents[j]));
         i--;
@@ -259,6 +266,7 @@
         }
         current = current.parentNode || current.host;
       }
+      parents.push(document.body);
       return parents;
     }
 
