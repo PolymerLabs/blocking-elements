@@ -131,9 +131,8 @@
      * for common parents and avoid setting them twice).
      * When the first blocking element is added (`newTop = null`), it saves the elements
      * that are already inert into `alreadyInertElems`. When the last blocking element
-     * is removed (`oldTop = null`), `alreadyInertElems` are kept inert.
+     * is removed, `alreadyInertElems` are kept inert.
      * @param {HTMLElement} newTop If null, it means the last blocking element was removed.
-     * @param {HTMLElement} oldTop If null, it means the first blocking element was added.
      * @param {!Set<HTMLElement>} alreadyInertElems Elements to be kept inert.
      * @private
      */
@@ -152,6 +151,7 @@
       }
       // Same parent, just switch old & new inertness.
       if (i >= 0 && j >= 0 && oldParents[i + 1] === parents[j + 1]) {
+        //TODO(valdrin) update __inertedSiblings!
         this[_setInert](oldParents[i], true);
         this[_setInert](parents[j], alreadyInertElems.has(parents[j]));
         i--;
@@ -192,13 +192,11 @@
 
     /**
      * Sets `inert` to the siblings of the element except the elements to skip.
-     * If `inert = true`, already inert elements are added into `alreadyInertElems`.
-     * If `inert = false`, siblings that are contained in `alreadyInertElems` will
-     * be kept inert.
+     * be kept inert. Returns the inerted siblings.
      * @param {!HTMLElement} element
-     * @param {boolean} inert
      * @param {Set<HTMLElement>} elemsToSkip
      * @param {Set<HTMLElement>} alreadyInertElems
+     * @returns {Array<HTMLElement>}
      * @private
      */
     static[_setInertToSiblingsOfElement](element, elemsToSkip, alreadyInertElems) {
