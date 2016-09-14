@@ -60,7 +60,7 @@
     destructor() {
       // Pretend like top changed from current top to null in order to reset
       // all its parents inertness. Ensure we keep inert what was already inert!
-      BlockingElements[_topChanged](null, this.top, this[_alreadyInertElements]);
+      BlockingElements[_topChanged](null, this[_alreadyInertElements]);
       this[_blockingElements] = null;
       this[_alreadyInertElements] = null;
     }
@@ -83,7 +83,7 @@
         console.warn('element already added in document.blockingElements');
         return;
       }
-      BlockingElements[_topChanged](element, this.top, this[_alreadyInertElements]);
+      BlockingElements[_topChanged](element, this[_alreadyInertElements]);
       this[_blockingElements].push(element);
     }
 
@@ -101,7 +101,7 @@
       this[_blockingElements].splice(i, 1);
       // Top changed only if the removed element was the top element.
       if (i === this[_blockingElements].length) {
-        BlockingElements[_topChanged](this.top, element, this[_alreadyInertElements]);
+        BlockingElements[_topChanged](this.top, this[_alreadyInertElements]);
       }
       return true;
     }
@@ -137,36 +137,44 @@
      * @param {!Set<HTMLElement>} alreadyInertElems Elements to be kept inert.
      * @private
      */
-    static[_topChanged](newTop, oldTop, alreadyInertElems) {
-      const oldElParents = oldTop ? this[_getParents](oldTop) : [];
-      const newElParents = newTop ? this[_getParents](newTop) : [];
+    static[_topChanged](newTop, alreadyInertElems) {
+      const oldParents = this._topParents || [];
+      const parents = newTop ? this[_getParents](newTop) : [];
       const elemsToSkip = newTop && newTop.shadowRoot ?
         this[_getDistributedChildren](newTop.shadowRoot) : null;
-      // Loop from top to deepest elements, so we find the common parents and
-      // avoid setting them twice.
-      while (oldElParents.length || newElParents.length) {
-        const oldElParent = oldElParents.pop();
-        const newElParent = newElParents.pop();
-        if (oldElParent === newElParent) {
-          continue;
-        }
-        // Same parent, set only these 2 children.
-        if (oldElParent && newElParent &&
-          oldElParent.parentNode === newElParent.parentNode) {
-          if (!oldTop && this[_isInert](oldElParent)) {
-            alreadyInertElems.add(oldElParent);
-          }
-          this[_setInert](oldElParent, true);
-          this[_setInert](newElParent, alreadyInertElems.has(newElParent));
-        } else {
-          oldElParent && this[_setInertToSiblingsOfElement](oldElParent, false, elemsToSkip,
-            alreadyInertElems);
-          // Collect the already inert elements only if it is the first blocking
-          // element (if oldTop = null)
-          newElParent && this[_setInertToSiblingsOfElement](newElParent, true, elemsToSkip,
-            oldTop ? null : alreadyInertElems);
-        }
+
+      let i = oldParents.length - 1;
+      let j = parents.length - 1;
+      // Find common parent.
+      while (oldParents[i] === parents[j]) {
+        i--;
+        j--;
       }
+      // Same parent, just switch old & new inertness.
+      if (i >= 0 && j >= 0 && oldParents[i + 1] === parents[j + 1]) {
+        this[_setInert](oldParents[i], true);
+        this[_setInert](parents[j], alreadyInertElems.has(parents[j]));
+        i--;
+        j--;
+      }
+      // Reset inertness to old inerted siblings.
+      let k, z;
+      for (k = 0; k <= i; k++) {
+        const elems = oldParents[k].__inertedSiblings;
+        for (z = 0; z < elems.length; z++) {
+          this[_setInert](elems[z], false);
+        }
+        oldParents[k].__inertedSiblings = null;
+      }
+      for (k = 0; k <= j; k++) {
+        // Collect the already inert elements only if it is the first blocking
+        // element (if oldTop = null)
+        parents[k].__inertedSiblings = this[_setInertToSiblingsOfElement](parents[k], elemsToSkip,
+          oldParents.length ? null : alreadyInertElems);
+      }
+
+      this._topParents = parents;
+
       if (!newTop) {
         alreadyInertElems.clear();
       }
@@ -193,35 +201,25 @@
      * @param {Set<HTMLElement>} alreadyInertElems
      * @private
      */
-    static[_setInertToSiblingsOfElement](element, inert, elemsToSkip, alreadyInertElems) {
-      // Previous siblings.
-      let sibling = element;
-      while ((sibling = sibling.previousElementSibling)) {
-        // If not inertable or to be skipped, skip.
-        if (this[_isNotInertable](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
+    static[_setInertToSiblingsOfElement](element, elemsToSkip, alreadyInertElems) {
+      const children = element.parentNode.children;
+      const res = [];
+      for (let i = 0; i < children.length; i++) {
+        const sibling = children[i];
+        // Skip the input element, if not inertable or to be skipped.
+        if (sibling === element || this[_isNotInertable](sibling) ||
+          (elemsToSkip && elemsToSkip.has(sibling))) {
           continue;
         }
         // Should be collected since already inerted.
-        if (alreadyInertElems && inert && this[_isInert](sibling)) {
+        if (alreadyInertElems && this[_isInert](sibling)) {
           alreadyInertElems.add(sibling);
+        } else {
+          this[_setInert](sibling, true);
+          res.push(sibling);
         }
-        // Should be kept inert if it's in `alreadyInertElems`.
-        this[_setInert](sibling, inert || (alreadyInertElems && alreadyInertElems.has(sibling)));
       }
-      // Next siblings.
-      sibling = element;
-      while ((sibling = sibling.nextElementSibling)) {
-        // If not inertable or to be skipped, skip.
-        if (this[_isNotInertable](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
-          continue;
-        }
-        // Should be collected since already inerted.
-        if (alreadyInertElems && inert && this[_isInert](sibling)) {
-          alreadyInertElems.add(sibling);
-        }
-        // Should be kept inert if it's in `alreadyInertElems`.
-        this[_setInert](sibling, inert || (alreadyInertElems && alreadyInertElems.has(sibling)));
-      }
+      return res;
     }
 
     /**
@@ -254,11 +252,11 @@
         const insertionPoints = current.getDestinationInsertionPoints ?
           current.getDestinationInsertionPoints() : [];
         if (insertionPoints.length) {
-          for (let i = 0; i < insertionPoints.length - 1; i++) {
-            parents.push(current);
+          for (let i = 0; i < insertionPoints.length; i++) {
+            parents.push(insertionPoints[i]);
           }
           // Continue the search on the top content.
-          current = insertionPoints[insertionPoints.length - 1];
+          current = parents.pop();
           continue;
         }
         current = current.parentNode || current.host;
