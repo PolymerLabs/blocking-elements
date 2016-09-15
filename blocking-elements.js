@@ -21,7 +21,7 @@
   const _blockingElements = Symbol();
   const _alreadyInertElements = Symbol();
   const _topParents = Symbol();
-  const _inertedSiblings = Symbol();
+  const _siblingsToRestore = Symbol();
 
   /* Symbols for private static methods */
   const _topChanged = Symbol();
@@ -143,14 +143,14 @@
      * @private
      */
     [_topChanged](newTop) {
-      const keepInert = this[_alreadyInertElements];
+      const toKeepInert = this[_alreadyInertElements];
       const oldParents = this[_topParents];
       const newParents = this[_getParents](newTop);
       this[_topParents] = newParents;
       // No new top, reset old top if any.
       if (!newTop) {
         this[_restoreInertedSiblings](oldParents);
-        keepInert.clear();
+        toKeepInert.clear();
         return;
       }
 
@@ -158,44 +158,50 @@
 
       // No previous top element.
       if (!oldParents.length) {
-        this[_inertSiblings](newParents, toSkip, keepInert);
+        this[_inertSiblings](newParents, toSkip, toKeepInert);
         return;
       }
 
       let i = oldParents.length - 1;
       let j = newParents.length - 1;
-      // Find common parent.
-      while (oldParents[i] === newParents[j]) {
+      // Find common parent. Index 0 is the element itself (so stop before it).
+      while (i > 0 && j > 0 && oldParents[i] === newParents[j]) {
         i--;
         j--;
       }
-      // Old and new top share a common parent, so just swap the inerted sibling.
-      this[_swapInertedSibling](oldParents[i], newParents[j], keepInert);
-      // Restore old parents siblings inertness, make new parents siblings inert.
-      this[_restoreInertedSiblings](oldParents.slice(0, i));
-      this[_inertSiblings](newParents.slice(0, j), toSkip);
+      // If up the parents tree there are 2 elements that are siblings, swap
+      // the inerted sibling.
+      if (oldParents[i] !== newParents[j]) {
+        this[_swapInertedSibling](oldParents[i], newParents[j]);
+      }
+      // Restore old parents siblings inertness.
+      i > 0 && this[_restoreInertedSiblings](oldParents.slice(0, i));
+      // Make new parents siblings inert.
+      j > 0 && this[_inertSiblings](newParents.slice(0, j), toSkip);
     }
 
     /**
      * Swaps inertness between two sibling elements.
      * @param {!HTMLElement} oldInert
      * @param {!HTMLElement} newInert
-     * @param {!Set<HTMLElement>} keepInert
      * @private
      */
-    [_swapInertedSibling](oldInert, newInert, keepInert) {
-      const siblings = oldInert[_inertedSiblings];
-      if (!keepInert.has(oldInert) && !this[_isInert](oldInert)) {
+    [_swapInertedSibling](oldInert, newInert) {
+      const siblingsToRestore = oldInert[_siblingsToRestore];
+      // oldInert is not contained in siblings to restore, so we have to check
+      // if it's inertable and if already inert.
+      if (!this[_isNotInertable](oldInert) && !this[_isInert](oldInert)) {
         this[_setInert](oldInert, true);
-        siblings.add(oldInert);
+        siblingsToRestore.add(oldInert);
       }
-      if (!keepInert.has(newInert)) {
+      // If newInert was already between the siblings to restore, it means it is
+      // inertable and must be restored.
+      if (siblingsToRestore.has(newInert)) {
         this[_setInert](newInert, false);
-        siblings.delete(newInert);
+        siblingsToRestore.delete(newInert);
       }
-      // Move inerted siblings to newInert.
-      newInert[_inertedSiblings] = siblings;
-      oldInert[_inertedSiblings] = null;
+      oldInert[_siblingsToRestore] = null;
+      newInert[_siblingsToRestore] = siblingsToRestore;
     }
 
     /**
@@ -205,23 +211,23 @@
      */
     [_restoreInertedSiblings](elements) {
       for (let i = 0, l = elements.length; i < l; i++) {
-        for (let sibling of elements[i][_inertedSiblings]) {
+        for (let sibling of elements[i][_siblingsToRestore]) {
           this[_setInert](sibling, false);
         }
-        elements[i][_inertedSiblings] = null;
+        elements[i][_siblingsToRestore] = null;
       }
     }
 
     /**
      * Inerts the siblings of the elements except the elements to skip. Stores
-     * the inerted siblings into the element's symbol `_inertedSiblings`.
-     * Pass `keepInert` to collect the already inert elements.
+     * the inerted siblings into the element's symbol `_siblingsToRestore`.
+     * Pass `toKeepInert` to collect the already inert elements.
      * @param {!Array<HTMLElement>} elements
      * @param {Set<HTMLElement>} toSkip
-     * @param {Set<HTMLElement>} keepInert
+     * @param {Set<HTMLElement>} toKeepInert
      * @private
      */
-    [_inertSiblings](elements, toSkip, keepInert) {
+    [_inertSiblings](elements, toSkip, toKeepInert) {
       for (let i = 0, l = elements.length; i < l; i++) {
         const element = elements[i];
         const children = element.parentNode.children;
@@ -234,15 +240,15 @@
             continue;
           }
           // Should be collected since already inerted.
-          if (keepInert && this[_isInert](sibling)) {
-            keepInert.add(sibling);
+          if (toKeepInert && this[_isInert](sibling)) {
+            toKeepInert.add(sibling);
           } else {
             this[_setInert](sibling, true);
             inertedSiblings.add(sibling);
           }
         }
         // Store the siblings that were inerted.
-        element[_inertedSiblings] = inertedSiblings;
+        element[_siblingsToRestore] = inertedSiblings;
       }
     }
 
@@ -253,7 +259,7 @@
      * @private
      */
     [_isNotInertable](element) {
-      return /^(style|template|script|content|slot)$/.test(element.localName);
+      return /^(style|template|script)$/.test(element.localName);
     }
 
     /**
