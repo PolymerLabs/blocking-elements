@@ -270,22 +270,22 @@
      * @private
      */
     [_getParents](element) {
-      const newParents = [];
+      const parents = [];
       let current = element;
       // Stop to body.
       while (current && current !== document.body) {
         // Skip shadow roots.
         if (current.nodeType === Node.ELEMENT_NODE) {
-          newParents.push(current);
+          parents.push(current);
         }
         // ShadowDom v1
         if (current.assignedSlot) {
           // Collect slots from deepest slot to top.
           while ((current = current.assignedSlot)) {
-            newParents.push(current);
+            parents.push(current);
           }
           // Continue the search on the top slot.
-          current = newParents.pop();
+          current = parents.pop();
           continue;
         }
         // ShadowDom v0
@@ -293,15 +293,15 @@
           current.getDestinationInsertionPoints() : [];
         if (insertionPoints.length) {
           for (let i = 0; i < insertionPoints.length; i++) {
-            newParents.push(insertionPoints[i]);
+            parents.push(insertionPoints[i]);
           }
           // Continue the search on the top content.
-          current = newParents.pop();
+          current = parents.pop();
           continue;
         }
         current = current.parentNode || current.host;
       }
-      return newParents;
+      return parents;
     }
 
     /**
