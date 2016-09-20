@@ -123,6 +123,32 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.isTrue(container.children[2].inert, '3rd child inert');
       });
 
+      test('remove() handles elements not in the dom anymore', function() {
+        const child = container.children[0];
+        document.$blockingElements.push(child);
+        assert.equal(document.$blockingElements.top, child);
+        container.removeChild(child);
+        document.$blockingElements.remove(child);
+        assert.equal(document.$blockingElements.top, null);
+        assert.isNotOk(container.inert, 'container active');
+        // Remaining children should be active.
+        for (let i = 0; i < container.children.length; i++) {
+          assert.isNotOk(container.children[i].inert, 'sibling active');
+        }
+      });
+
+      test('destructor resets the document inertness', function() {
+        document.$blockingElements.push(container.children[0]);
+        // Destroy and then construct again.
+        document.$blockingElements.destructor();
+        document.$blockingElements = new document.$blockingElements.constructor();
+        assert.isNotOk(container.inert, 'container active');
+        // Remaining children should be active.
+        for (let i = 0; i < container.children.length; i++) {
+          assert.isNotOk(container.children[i].inert, 'sibling active');
+        }
+      });
+
     });
 
     suite('nested', function() {

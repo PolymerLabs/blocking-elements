@@ -20,15 +20,17 @@
   /* Symbols for private properties */
   const _blockingElements = Symbol();
   const _alreadyInertElements = Symbol();
+  const _topElParents = Symbol();
+  const _siblingsToRestore = Symbol();
 
   /* Symbols for private static methods */
   const _topChanged = Symbol();
-  const _setInertToSiblingsOfElement = Symbol();
+  const _swapInertedSibling = Symbol();
+  const _inertSiblings = Symbol();
+  const _restoreInertedSiblings = Symbol();
   const _getParents = Symbol();
   const _getDistributedChildren = Symbol();
   const _isInertable = Symbol();
-  const _isInert = Symbol();
-  const _setInert = Symbol();
 
   /**
    * `BlockingElements` manages a stack of elements that inert the interaction
@@ -46,6 +48,16 @@
       this[_blockingElements] = [];
 
       /**
+       * Used to keep track of the parents of the top element, from the element
+       * itself up to body. When top changes, the old top might have been removed
+       * from the document, so we need to memoize the inerted parents' siblings
+       * in order to restore their inerteness when top changes.
+       * @type {Array<HTMLElement>}
+       * @private
+       */
+      this[_topElParents] = [];
+
+      /**
        * Elements that are already inert before the first blocking element is pushed.
        * @type {Set<HTMLElement>}
        * @private
@@ -58,10 +70,10 @@
      * the blocking elements
      */
     destructor() {
-      // Pretend like top changed from current top to null in order to reset
-      // all its parents inertness. Ensure we keep inert what was already inert!
-      BlockingElements[_topChanged](null, this.top, this[_alreadyInertElements]);
+      // Restore original inertness.
+      this[_restoreInertedSiblings](this[_topElParents]);
       this[_blockingElements] = null;
+      this[_topElParents] = null;
       this[_alreadyInertElements] = null;
     }
 
@@ -83,7 +95,7 @@
         console.warn('element already added in document.blockingElements');
         return;
       }
-      BlockingElements[_topChanged](element, this.top, this[_alreadyInertElements]);
+      this[_topChanged](element);
       this[_blockingElements].push(element);
     }
 
@@ -101,7 +113,7 @@
       this[_blockingElements].splice(i, 1);
       // Top changed only if the removed element was the top element.
       if (i === this[_blockingElements].length) {
-        BlockingElements[_topChanged](this.top, element, this[_alreadyInertElements]);
+        this[_topChanged](this.top);
       }
       return true;
     }
@@ -127,111 +139,147 @@
 
     /**
      * Sets `inert` to all document elements except the new top element, its parents,
-     * and its distributed content. Pass `oldTop` to limit element updates (will look
-     * for common parents and avoid setting them twice).
-     * When the first blocking element is added (`newTop = null`), it saves the elements
-     * that are already inert into `alreadyInertElems`. When the last blocking element
-     * is removed (`oldTop = null`), `alreadyInertElems` are kept inert.
-     * @param {HTMLElement} newTop If null, it means the last blocking element was removed.
-     * @param {HTMLElement} oldTop If null, it means the first blocking element was added.
-     * @param {!Set<HTMLElement>} alreadyInertElems Elements to be kept inert.
+     * and its distributed content.
+     * @param {?HTMLElement} newTop If null, it means the last blocking element was removed.
      * @private
      */
-    static[_topChanged](newTop, oldTop, alreadyInertElems) {
-      const oldElParents = oldTop ? this[_getParents](oldTop) : [];
-      const newElParents = newTop ? this[_getParents](newTop) : [];
-      const elemsToSkip = newTop && newTop.shadowRoot ?
-        this[_getDistributedChildren](newTop.shadowRoot) : null;
-      // Loop from top to deepest elements, so we find the common parents and
-      // avoid setting them twice.
-      while (oldElParents.length || newElParents.length) {
-        const oldElParent = oldElParents.pop();
-        const newElParent = newElParents.pop();
-        if (oldElParent === newElParent) {
-          continue;
-        }
-        // Same parent, set only these 2 children.
-        if (oldElParent && newElParent &&
-          oldElParent.parentNode === newElParent.parentNode) {
-          if (!oldTop && this[_isInert](oldElParent)) {
-            alreadyInertElems.add(oldElParent);
-          }
-          this[_setInert](oldElParent, true);
-          this[_setInert](newElParent, alreadyInertElems.has(newElParent));
-        } else {
-          oldElParent && this[_setInertToSiblingsOfElement](oldElParent, false, elemsToSkip,
-            alreadyInertElems);
-          // Collect the already inert elements only if it is the first blocking
-          // element (if oldTop = null)
-          newElParent && this[_setInertToSiblingsOfElement](newElParent, true, elemsToSkip,
-            oldTop ? null : alreadyInertElems);
-        }
-      }
+    [_topChanged](newTop) {
+      const toKeepInert = this[_alreadyInertElements];
+      const oldParents = this[_topElParents];
+      const newParents = this[_getParents](newTop);
+      this[_topElParents] = newParents;
+      // No new top, reset old top if any.
       if (!newTop) {
-        alreadyInertElems.clear();
+        this[_restoreInertedSiblings](oldParents);
+        toKeepInert.clear();
+        return;
+      }
+
+      const toSkip = this[_getDistributedChildren](newTop);
+
+      // No previous top element.
+      if (!oldParents.length) {
+        this[_inertSiblings](newParents, toSkip, toKeepInert);
+        return;
+      }
+
+      let i = oldParents.length - 1;
+      let j = newParents.length - 1;
+      // Find common parent. Index 0 is the element itself (so stop before it).
+      while (i > 0 && j > 0 && oldParents[i] === newParents[j]) {
+        i--;
+        j--;
+      }
+      // If up the parents tree there are 2 elements that are siblings, swap
+      // the inerted sibling.
+      if (oldParents[i] !== newParents[j]) {
+        this[_swapInertedSibling](oldParents[i], newParents[j]);
+      }
+      // Restore old parents siblings inertness.
+      i > 0 && this[_restoreInertedSiblings](oldParents.slice(0, i));
+      // Make new parents siblings inert.
+      j > 0 && this[_inertSiblings](newParents.slice(0, j), toSkip);
+    }
+
+    /**
+     * Swaps inertness between two sibling elements.
+     * Sets the property `inert` over the attribute since the inert spec
+     * doesn't specify if it should be reflected.
+     * https://html.spec.whatwg.org/multipage/interaction.html#inert
+     * @param {!HTMLElement} oldInert
+     * @param {!HTMLElement} newInert
+     * @private
+     */
+    [_swapInertedSibling](oldInert, newInert) {
+      const siblingsToRestore = oldInert[_siblingsToRestore];
+      // oldInert is not contained in siblings to restore, so we have to check
+      // if it's inertable and if already inert.
+      if (this[_isInertable](oldInert) && !oldInert.inert) {
+        oldInert.inert = true;
+        siblingsToRestore.add(oldInert);
+      }
+      // If newInert was already between the siblings to restore, it means it is
+      // inertable and must be restored.
+      if (siblingsToRestore.has(newInert)) {
+        newInert.inert = false;
+        siblingsToRestore.delete(newInert);
+      }
+      oldInert[_siblingsToRestore] = null;
+      newInert[_siblingsToRestore] = siblingsToRestore;
+    }
+
+    /**
+     * Restores original inertness to the siblings of the elements.
+     * Sets the property `inert` over the attribute since the inert spec
+     * doesn't specify if it should be reflected.
+     * https://html.spec.whatwg.org/multipage/interaction.html#inert
+     * @param {!Array<HTMLElement>} elements
+     * @private
+     */
+    [_restoreInertedSiblings](elements) {
+      for (let i = 0, l = elements.length; i < l; i++) {
+        for (let sibling of elements[i][_siblingsToRestore]) {
+          sibling.inert = false;
+        }
+        elements[i][_siblingsToRestore] = null;
       }
     }
 
     /**
-     * Returns if the element is not inertable.
+     * Inerts the siblings of the elements except the elements to skip. Stores
+     * the inerted siblings into the element's symbol `_siblingsToRestore`.
+     * Pass `toKeepInert` to collect the already inert elements.
+     * Sets the property `inert` over the attribute since the inert spec
+     * doesn't specify if it should be reflected.
+     * https://html.spec.whatwg.org/multipage/interaction.html#inert
+     * @param {!Array<HTMLElement>} elements
+     * @param {Set<HTMLElement>} toSkip
+     * @param {Set<HTMLElement>} toKeepInert
+     * @private
+     */
+    [_inertSiblings](elements, toSkip, toKeepInert) {
+      for (let i = 0, l = elements.length; i < l; i++) {
+        const element = elements[i];
+        const children = element.parentNode.children;
+        const inertedSiblings = new Set();
+        for (let j = 0; j < children.length; j++) {
+          const sibling = children[j];
+          // Skip the input element, if not inertable or to be skipped.
+          if (sibling === element || !this[_isInertable](sibling) ||
+            (toSkip && toSkip.has(sibling))) {
+            continue;
+          }
+          // Should be collected since already inerted.
+          if (toKeepInert && sibling.inert) {
+            toKeepInert.add(sibling);
+          } else {
+            sibling.inert = true;
+            inertedSiblings.add(sibling);
+          }
+        }
+        // Store the siblings that were inerted.
+        element[_siblingsToRestore] = inertedSiblings;
+      }
+    }
+
+    /**
+     * Returns if the element is inertable.
      * @param {!HTMLElement} element
      * @returns {boolean}
      * @private
      */
-    static[_isInertable](element) {
-      return /^(style|template|script)$/.test(element.localName);
+    [_isInertable](element) {
+      return false === /^(style|template|script)$/.test(element.localName);
     }
 
     /**
-     * Sets `inert` to the siblings of the element except the elements to skip.
-     * If `inert = true`, already inert elements are added into `alreadyInertElems`.
-     * If `inert = false`, siblings that are contained in `alreadyInertElems` will
-     * be kept inert.
-     * @param {!HTMLElement} element
-     * @param {boolean} inert
-     * @param {Set<HTMLElement>} elemsToSkip
-     * @param {Set<HTMLElement>} alreadyInertElems
-     * @private
-     */
-    static[_setInertToSiblingsOfElement](element, inert, elemsToSkip, alreadyInertElems) {
-      // Previous siblings.
-      let sibling = element;
-      while ((sibling = sibling.previousElementSibling)) {
-        // If not inertable or to be skipped, skip.
-        if (this[_isInertable](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
-          continue;
-        }
-        // Should be collected since already inerted.
-        if (alreadyInertElems && inert && this[_isInert](sibling)) {
-          alreadyInertElems.add(sibling);
-        }
-        // Should be kept inert if it's in `alreadyInertElems`.
-        this[_setInert](sibling, inert || (alreadyInertElems && alreadyInertElems.has(sibling)));
-      }
-      // Next siblings.
-      sibling = element;
-      while ((sibling = sibling.nextElementSibling)) {
-        // If not inertable or to be skipped, skip.
-        if (this[_isInertable](sibling) || (elemsToSkip && elemsToSkip.has(sibling))) {
-          continue;
-        }
-        // Should be collected since already inerted.
-        if (alreadyInertElems && inert && this[_isInert](sibling)) {
-          alreadyInertElems.add(sibling);
-        }
-        // Should be kept inert if it's in `alreadyInertElems`.
-        this[_setInert](sibling, inert || (alreadyInertElems && alreadyInertElems.has(sibling)));
-      }
-    }
-
-    /**
-     * Returns the list of parents of an element, starting from element (included)
+     * Returns the list of newParents of an element, starting from element (included)
      * up to `document.body` (excluded).
-     * @param {!HTMLElement} element
+     * @param {HTMLElement} element
      * @returns {Array<HTMLElement>}
      * @private
      */
-    static[_getParents](element) {
+    [_getParents](element) {
       const parents = [];
       let current = element;
       // Stop to body.
@@ -254,11 +302,11 @@
         const insertionPoints = current.getDestinationInsertionPoints ?
           current.getDestinationInsertionPoints() : [];
         if (insertionPoints.length) {
-          for (let i = 0; i < insertionPoints.length - 1; i++) {
-            parents.push(current);
+          for (let i = 0; i < insertionPoints.length; i++) {
+            parents.push(insertionPoints[i]);
           }
           // Continue the search on the top content.
-          current = insertionPoints[insertionPoints.length - 1];
+          current = parents.pop();
           continue;
         }
         current = current.parentNode || current.host;
@@ -267,12 +315,17 @@
     }
 
     /**
-     * Returns the distributed children of a shadow root.
-     * @param {!DocumentFragment} shadowRoot
-     * @returns {Set<HTMLElement>}
+     * Returns the distributed children of the element's shadow root.
+     * Returns null if the element doesn't have a shadow root.
+     * @param {!element} element
+     * @returns {Set<HTMLElement>|null}
      * @private
      */
-    static[_getDistributedChildren](shadowRoot) {
+    [_getDistributedChildren](element) {
+      const shadowRoot = element.shadowRoot;
+      if (!shadowRoot) {
+        return null;
+      }
       const result = new Set();
       let i, j, nodes;
       // ShadowDom v1
@@ -304,29 +357,6 @@
         }
       }
       return result;
-    }
-
-    /**
-     * Returns if an element is inert.
-     * @param {!HTMLElement} element
-     * @returns {boolean}
-     * @private
-     */
-    static[_isInert](element) {
-      return element.inert;
-    }
-
-    /**
-     * Sets inert to an element.
-     * @param {!HTMLElement} element
-     * @param {boolean} inert
-     * @private
-     */
-    static[_setInert](element, inert) {
-      // Prefer setting the property over the attribute since the inert spec
-      // doesn't specify if it should be reflected.
-      // https://html.spec.whatwg.org/multipage/interaction.html#inert
-      element.inert = inert;
     }
   }
 
