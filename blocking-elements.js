@@ -20,7 +20,7 @@
   /* Symbols for private properties */
   const _blockingElements = Symbol();
   const _alreadyInertElements = Symbol();
-  const _topParents = Symbol();
+  const _topElParents = Symbol();
   const _siblingsToRestore = Symbol();
 
   /* Symbols for private static methods */
@@ -30,9 +30,7 @@
   const _restoreInertedSiblings = Symbol();
   const _getParents = Symbol();
   const _getDistributedChildren = Symbol();
-  const _isNotInertable = Symbol();
-  const _isInert = Symbol();
-  const _setInert = Symbol();
+  const _isInertable = Symbol();
 
   /**
    * `BlockingElements` manages a stack of elements that inert the interaction
@@ -50,11 +48,14 @@
       this[_blockingElements] = [];
 
       /**
-       * The parents of the top element.
+       * Used to keep track of the parents of the top element, from the element
+       * itself up to body. When top changes, the old top might have been removed
+       * from the document, so we need to memoize the inerted parents' siblings
+       * in order to restore their inerteness when top changes.
        * @type {Array<HTMLElement>}
        * @private
        */
-      this[_topParents] = [];
+      this[_topElParents] = [];
 
       /**
        * Elements that are already inert before the first blocking element is pushed.
@@ -70,9 +71,9 @@
      */
     destructor() {
       // Restore original inertness.
-      this[_restoreInertedSiblings](this[_topParents]);
+      this[_restoreInertedSiblings](this[_topElParents]);
       this[_blockingElements] = null;
-      this[_topParents] = null;
+      this[_topElParents] = null;
       this[_alreadyInertElements] = null;
     }
 
@@ -144,9 +145,9 @@
      */
     [_topChanged](newTop) {
       const toKeepInert = this[_alreadyInertElements];
-      const oldParents = this[_topParents];
+      const oldParents = this[_topElParents];
       const newParents = this[_getParents](newTop);
-      this[_topParents] = newParents;
+      this[_topElParents] = newParents;
       // No new top, reset old top if any.
       if (!newTop) {
         this[_restoreInertedSiblings](oldParents);
@@ -182,6 +183,9 @@
 
     /**
      * Swaps inertness between two sibling elements.
+     * Sets the property `inert` over the attribute since the inert spec
+     * doesn't specify if it should be reflected.
+     * https://html.spec.whatwg.org/multipage/interaction.html#inert
      * @param {!HTMLElement} oldInert
      * @param {!HTMLElement} newInert
      * @private
@@ -190,14 +194,14 @@
       const siblingsToRestore = oldInert[_siblingsToRestore];
       // oldInert is not contained in siblings to restore, so we have to check
       // if it's inertable and if already inert.
-      if (!this[_isNotInertable](oldInert) && !this[_isInert](oldInert)) {
-        this[_setInert](oldInert, true);
+      if (this[_isInertable](oldInert) && !oldInert.inert) {
+        oldInert.inert = true;
         siblingsToRestore.add(oldInert);
       }
       // If newInert was already between the siblings to restore, it means it is
       // inertable and must be restored.
       if (siblingsToRestore.has(newInert)) {
-        this[_setInert](newInert, false);
+        newInert.inert = false;
         siblingsToRestore.delete(newInert);
       }
       oldInert[_siblingsToRestore] = null;
@@ -206,13 +210,16 @@
 
     /**
      * Restores original inertness to the siblings of the elements.
+     * Sets the property `inert` over the attribute since the inert spec
+     * doesn't specify if it should be reflected.
+     * https://html.spec.whatwg.org/multipage/interaction.html#inert
      * @param {!Array<HTMLElement>} elements
      * @private
      */
     [_restoreInertedSiblings](elements) {
       for (let i = 0, l = elements.length; i < l; i++) {
         for (let sibling of elements[i][_siblingsToRestore]) {
-          this[_setInert](sibling, false);
+          sibling.inert = false;
         }
         elements[i][_siblingsToRestore] = null;
       }
@@ -222,6 +229,9 @@
      * Inerts the siblings of the elements except the elements to skip. Stores
      * the inerted siblings into the element's symbol `_siblingsToRestore`.
      * Pass `toKeepInert` to collect the already inert elements.
+     * Sets the property `inert` over the attribute since the inert spec
+     * doesn't specify if it should be reflected.
+     * https://html.spec.whatwg.org/multipage/interaction.html#inert
      * @param {!Array<HTMLElement>} elements
      * @param {Set<HTMLElement>} toSkip
      * @param {Set<HTMLElement>} toKeepInert
@@ -235,15 +245,15 @@
         for (let j = 0; j < children.length; j++) {
           const sibling = children[j];
           // Skip the input element, if not inertable or to be skipped.
-          if (sibling === element || this[_isNotInertable](sibling) ||
+          if (sibling === element || !this[_isInertable](sibling) ||
             (toSkip && toSkip.has(sibling))) {
             continue;
           }
           // Should be collected since already inerted.
-          if (toKeepInert && this[_isInert](sibling)) {
+          if (toKeepInert && sibling.inert) {
             toKeepInert.add(sibling);
           } else {
-            this[_setInert](sibling, true);
+            sibling.inert = true;
             inertedSiblings.add(sibling);
           }
         }
@@ -253,13 +263,13 @@
     }
 
     /**
-     * Returns if the element is not inertable.
+     * Returns if the element is inertable.
      * @param {!HTMLElement} element
      * @returns {boolean}
      * @private
      */
-    [_isNotInertable](element) {
-      return /^(style|template|script)$/.test(element.localName);
+    [_isInertable](element) {
+      return false === /^(style|template|script)$/.test(element.localName);
     }
 
     /**
@@ -347,29 +357,6 @@
         }
       }
       return result;
-    }
-
-    /**
-     * Returns if an element is inert.
-     * @param {!HTMLElement} element
-     * @returns {boolean}
-     * @private
-     */
-    [_isInert](element) {
-      return element.inert;
-    }
-
-    /**
-     * Sets inert to an element.
-     * @param {!HTMLElement} element
-     * @param {boolean} inert
-     * @private
-     */
-    [_setInert](element, inert) {
-      // Prefer setting the property over the attribute since the inert spec
-      // doesn't specify if it should be reflected.
-      // https://html.spec.whatwg.org/multipage/interaction.html#inert
-      element.inert = inert;
     }
   }
 
