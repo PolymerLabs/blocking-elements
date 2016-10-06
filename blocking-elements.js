@@ -22,6 +22,7 @@
   const _alreadyInertElements = Symbol();
   const _topElParents = Symbol();
   const _siblingsToRestore = Symbol();
+  const _topChangedRAF = Symbol();
 
   /* Symbols for private static methods */
   const _topChanged = Symbol();
@@ -63,6 +64,16 @@
        * @private
        */
       this[_alreadyInertElements] = new Set();
+
+      /**
+       * requestAnimationFrame ID, used to perform _topChanged computations before
+       * the next frame.
+       * @type {Number}
+       * @private
+       */
+      this[_topChangedRAF] = null;
+
+      this[_topChanged] = this[_topChanged].bind(this);
     }
 
     /**
@@ -95,8 +106,10 @@
         console.warn('element already added in document.blockingElements');
         return;
       }
-      this[_topChanged](element);
       this[_blockingElements].push(element);
+
+      this[_topChangedRAF] && window.cancelAnimationFrame(this[_topChangedRAF]);
+      this[_topChangedRAF] = window.requestAnimationFrame(this[_topChanged]);
     }
 
     /**
@@ -113,7 +126,8 @@
       this[_blockingElements].splice(i, 1);
       // Top changed only if the removed element was the top element.
       if (i === this[_blockingElements].length) {
-        this[_topChanged](this.top);
+        this[_topChangedRAF] && window.cancelAnimationFrame(this[_topChangedRAF]);
+        this[_topChangedRAF] = window.requestAnimationFrame(this[_topChanged]);
       }
       return true;
     }
@@ -137,13 +151,26 @@
       return this[_blockingElements].indexOf(element) !== -1;
     }
 
+
+    /**
+     * Forces any pending update of the DOM tree without waiting for
+     * the next animation frame.
+     */
+    flush() {
+      if (this[_topChangedRAF]) {
+        window.cancelAnimationFrame(this[_topChangedRAF]);
+        this[_topChanged]();
+      }
+    }
+
     /**
      * Sets `inert` to all document elements except the new top element, its parents,
      * and its distributed content.
-     * @param {?HTMLElement} newTop If null, it means the last blocking element was removed.
      * @private
      */
-    [_topChanged](newTop) {
+    [_topChanged]() {
+      this[_topChangedRAF] = null;
+      const newTop = this.top;
       const toKeepInert = this[_alreadyInertElements];
       const oldParents = this[_topElParents];
       const newParents = this[_getParents](newTop);

@@ -19,7 +19,7 @@
     "test-fixture": "PolymerElements/test-fixture#custom-elements-v1",
     "inert": "WICG/inert#master",
     "web-component-tester": "^4.0.0",
-    "webcomponentsjs": "webcomponents/webcomponentsjs#v1-polymer-edits"
+    "webcomponentsjs": "webcomponents/webcomponentsjs#v1"
   },
   "ignore": [],
   "resolutions": {
