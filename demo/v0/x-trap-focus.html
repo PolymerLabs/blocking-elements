@@ -19,6 +19,8 @@ limitations under the License.
       border: 1px solid lightgray;
       padding: 5px;
       margin: 5px;
+      outline: 0 solid transparent;
+      transition: outline .3s;
     }
 
     :host(.blocking) {
@@ -55,8 +57,8 @@ limitations under the License.
       }
 
       _toggleTrap(evt) {
-        this.classList[evt.target.checked ? 'add' : 'remove']('blocking');
         document.$blockingElements[evt.target.checked ? 'push' : 'remove'](this);
+        this.classList[evt.target.checked ? 'add' : 'remove']('blocking');
       }
     }
     customElements.define('x-trap-focus', XTrapFocus);

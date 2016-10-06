@@ -22,7 +22,7 @@
   const _alreadyInertElements = Symbol();
   const _topElParents = Symbol();
   const _siblingsToRestore = Symbol();
-  const _topChangedRAF = Symbol();
+  const _asyncId = Symbol();
 
   /* Symbols for private static methods */
   const _topChanged = Symbol();
@@ -66,12 +66,11 @@
       this[_alreadyInertElements] = new Set();
 
       /**
-       * requestAnimationFrame ID, used to perform _topChanged computations before
-       * the next frame.
+       * Used to debounce `_topChanged` calls.
        * @type {Number}
        * @private
        */
-      this[_topChangedRAF] = null;
+      this[_asyncId] = null;
 
       this[_topChanged] = this[_topChanged].bind(this);
     }
@@ -81,6 +80,10 @@
      * the blocking elements
      */
     destructor() {
+      if (this[_asyncId]) {
+        window.clearTimeout(this[_asyncId]);
+        this[_asyncId] = null;
+      }
       // Restore original inertness.
       this[_restoreInertedSiblings](this[_topElParents]);
       this[_blockingElements] = null;
@@ -108,8 +111,9 @@
       }
       this[_blockingElements].push(element);
 
-      this[_topChangedRAF] && window.cancelAnimationFrame(this[_topChangedRAF]);
-      this[_topChangedRAF] = window.requestAnimationFrame(this[_topChanged]);
+      this[_asyncId] && window.clearTimeout(this[_asyncId]);
+      // Delay of 1ms to execute after next render.
+      this[_asyncId] = window.setTimeout(this[_topChanged], 1);
     }
 
     /**
@@ -126,8 +130,9 @@
       this[_blockingElements].splice(i, 1);
       // Top changed only if the removed element was the top element.
       if (i === this[_blockingElements].length) {
-        this[_topChangedRAF] && window.cancelAnimationFrame(this[_topChangedRAF]);
-        this[_topChangedRAF] = window.requestAnimationFrame(this[_topChanged]);
+        this[_asyncId] && window.clearTimeout(this[_asyncId]);
+        // Delay of 1ms to execute after next render.
+        this[_asyncId] = window.setTimeout(this[_topChanged], 1);
       }
       return true;
     }
@@ -157,8 +162,8 @@
      * the next animation frame.
      */
     flush() {
-      if (this[_topChangedRAF]) {
-        window.cancelAnimationFrame(this[_topChangedRAF]);
+      if (this[_asyncId]) {
+        window.clearTimeout(this[_asyncId]);
         this[_topChanged]();
       }
     }
@@ -169,7 +174,7 @@
      * @private
      */
     [_topChanged]() {
-      this[_topChangedRAF] = null;
+      this[_asyncId] = null;
       const newTop = this.top;
       const toKeepInert = this[_alreadyInertElements];
       const oldParents = this[_topElParents];
