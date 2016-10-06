@@ -110,7 +110,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       let container;
 
-      setup(function() {
+      setup(function(done) {
         container = fixture('basic');
         const template = document.querySelector('template#shadow-v1');
 
@@ -119,6 +119,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         container.attachShadow({
           mode: 'open'
         }).appendChild(clone);
+
+        // TODO(valdrin) discover why attachShadow polyfill needs this timeout.
+        setTimeout(function() {
+          done();
+        })
       });
 
       teardown(function() {
