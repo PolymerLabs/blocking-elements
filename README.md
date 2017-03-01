@@ -32,6 +32,6 @@ At each toggle, scripting + rendering + painting totals to **~50ms** (first togg
 The heaviest parts are:
 
 - unconditional paint caused by changes to `cursor-event` css property (see [issue](https://github.com/WICG/inert/issues/21)) => once fixed we should gain **~20-25ms**
-- addition of the inert style nodes in shadow roots (done once for inert element's shadow root, see [polyfill's implementation](https://github.com/WICG/inert/blob/master/inert.js#L581)) => can be fixed only by native implementation of `inert`, should be a gain of at least **~5ms** (cost of adding a node)
+- addition of the inert style nodes in shadow roots (done once for inert element's shadow root) => can be fixed only by native implementation of `inert`, should be a gain of at least **~5ms** (cost of adding a node)
 
 The results have been obtained by toggling the deepest `x-trap-focus` inside nested `x-b` (Chrome v52 stable for MacOs -> <http://localhost:8080/components/blockingElements/demo/ce.html?ce=v0>) ![results](https://cloud.githubusercontent.com/assets/6173664/17538133/914f365a-5e57-11e6-9b91-1c6b7eb22d57.png)
