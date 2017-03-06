@@ -16,13 +16,9 @@
   "homepage": "https://github.com/PolymerLabs/blockingElements",
   "private": true,
   "devDependencies": {
-    "test-fixture": "PolymerElements/test-fixture#custom-elements-v1",
-    "inert": "WICG/inert#master",
-    "web-component-tester": "^4.0.0",
-    "webcomponentsjs": "webcomponents/webcomponentsjs#v1-polymer-edits"
+    "inert": "WICG/inert#^1",
+    "web-component-tester": "Polymer/web-component-tester#^6.0.0-prerelease.6",
+    "webcomponentsjs": "webcomponents/webcomponentsjs#^1.0.0-rc.4"
   },
-  "ignore": [],
-  "resolutions": {
-    "test-fixture": "custom-elements-v1"
-  }
+  "ignore": []
 }
