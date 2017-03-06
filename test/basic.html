@@ -84,6 +84,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.equal(document.$blockingElements.top, null);
       });
 
+      test('push() can be used to make an already blocking element the top blocking element', function() {
+        assert.equal(document.$blockingElements.top, null);
+        document.$blockingElements.push(container.children[0]);
+        assert.equal(document.$blockingElements.top, container.children[0], 'child0 is top blocking element');
+        // Add another element.
+        document.$blockingElements.push(container.children[1]);
+        assert.equal(document.$blockingElements.top, container.children[1], 'child1 is top blocking element');
+        // Push again first element.
+        document.$blockingElements.push(container.children[0]);
+        assert.equal(document.$blockingElements.top, container.children[0], 'child0 brought to top');
+      });
+
+      test('push() adds only elements contained in document', function() {
+        assert.equal(document.$blockingElements.top, null);
+        assert.throws(function() {
+          document.$blockingElements.push(document.createElement('div'));
+        }, 'Non-connected element cannot be a blocking element');
+        assert.equal(document.$blockingElements.top, null, 'element is not a blocking element');
+      });
+
       test('pop() removes the top blocking element from stack and returns it', function() {
         document.$blockingElements.push(container.children[0]);
         document.$blockingElements.push(container.children[1]);

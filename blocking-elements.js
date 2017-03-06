@@ -91,10 +91,11 @@
      * @param {!HTMLElement} element
      */
     push(element) {
-      if (this.has(element)) {
-        console.warn('element already added in document.blockingElements');
+      if (!element || element === this.top) {
         return;
       }
+      // Remove it from the stack, we'll bring it to the top.
+      this.remove(element);
       this[_topChanged](element);
       this[_blockingElements].push(element);
     }
@@ -146,14 +147,20 @@
     [_topChanged](newTop) {
       const toKeepInert = this[_alreadyInertElements];
       const oldParents = this[_topElParents];
-      const newParents = this[_getParents](newTop);
-      this[_topElParents] = newParents;
       // No new top, reset old top if any.
       if (!newTop) {
         this[_restoreInertedSiblings](oldParents);
         toKeepInert.clear();
+        this[_topElParents] = [];
         return;
       }
+
+      const newParents = this[_getParents](newTop);
+      // New top is not contained in the main document!
+      if (newParents[newParents.length - 1].parentNode !== document.body) {
+        throw 'Non-connected element cannot be a blocking element';
+      }
+      this[_topElParents] = newParents;
 
       const toSkip = this[_getDistributedChildren](newTop);
 
