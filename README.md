@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/PolymerLabs/blockingElements.svg?branch=master)](https://travis-ci.org/PolymerLabs/blockingElements)
+
 # `blockingElements` stack API
 
 Implementation of proposal <https://github.com/whatwg/html/issues/897>
