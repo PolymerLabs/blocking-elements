@@ -25,6 +25,16 @@ Wrapping the focus requires to find all the focusable nodes within the top block
 
 This approach doesn't allow the focus to move outside the window (e.g. to the browser's url bar, dev console if opened, etc.), and is less robust when used with assistive technology (e.g. android talkback allows to move focus with swipe on screen, Apple Voiceover allows to move focus with special keyboard combinations).
 
+## Install & run locally
+
+Install the dependencies with `bower install`.
+
+Serve the resources via the [polymer CLI](https://github.com/Polymer/polymer-cli):
+```bash
+$ npm install -g polymer-cli
+$ polymer serve
+```
+
 ## Performance
 
 Performance is dependent on the `inert` polyfill performance. The polyfill tries to invoke `inert` only if strictly needed (e.g. avoid setting it twice when updating the top blocking element).
