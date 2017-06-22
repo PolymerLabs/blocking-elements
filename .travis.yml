@@ -1,7 +1,7 @@
 language: node_js
 sudo: required
 before_script:
-- npm install -g bower polymer-cli@next
+- npm install -g bower polymer-cli
 - polymer install
 node_js: '6'
 addons:
