@@ -47,3 +47,14 @@ The heaviest parts are:
 - addition of the inert style nodes in shadow roots (done once for inert element's shadow root) => can be fixed only by native implementation of `inert`, should be a gain of at least **~5ms** (cost of adding a node)
 
 The results have been obtained by toggling the deepest `x-trap-focus` inside nested `x-b` (Chrome v52 stable for MacOs -> <http://localhost:8080/components/blockingElements/demo/ce.html?ce=v0>) ![results](https://cloud.githubusercontent.com/assets/6173664/17538133/914f365a-5e57-11e6-9b91-1c6b7eb22d57.png)
+
+### Polyfilled vs native inert
+
+Chrome recently landed [the `inert` attribute implementation](https://codereview.chromium.org/2088453002/) behind a flag; these tests show a **15x performance improvement** 🎉
+
+| with polyfilled inert (M58) | with native inert (M60) |
+|----------|--------|
+| ![polyfill-inert-1.png](assets/polyfill-inert-1.png) | ![native-inert-1.png](assets/native-inert-1.png) |
+| ![polyfill-inert-2.png](assets/polyfill-inert-2.png) | ![native-inert-2.png](assets/native-inert-2.png) |
+| ![polyfill-inert-3.png](assets/polyfill-inert-3.png) | ![native-inert-3.png](assets/native-inert-3.png) |
+| ![polyfill-inert-4.png](assets/polyfill-inert-4.png) | ![native-inert-4.png](assets/native-inert-4.png) |
