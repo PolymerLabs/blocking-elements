@@ -37,20 +37,11 @@ $ polymer serve
 
 ## Performance
 
-Performance is dependent on the `inert` polyfill performance. The polyfill tries to invoke `inert` only if strictly needed (e.g. avoid setting it twice when updating the top blocking element).
+Performance is dependent on the `inert` polyfill performance. Chrome recently landed [the `inert` attribute implementation](https://codereview.chromium.org/2088453002/) behind a flag.
 
-At each toggle, scripting + rendering + painting totals to **~50ms** (first toggle), **~35ms** (next toggles)
+Let's compare the how long it takes to toggle the deepest `x-trap-focus` inside nested `x-b` of the demo page (<http://localhost:8080/components/blockingElements/demo/ce.html?ce=v1>) ![results](https://cloud.githubusercontent.com/assets/6173664/17538133/914f365a-5e57-11e6-9b91-1c6b7eb22d57.png).
 
-The heaviest parts are:
-
-- unconditional paint caused by changes to `cursor-event` css property (see [issue](https://github.com/WICG/inert/issues/21)) => once fixed we should gain **~20-25ms**
-- addition of the inert style nodes in shadow roots (done once for inert element's shadow root) => can be fixed only by native implementation of `inert`, should be a gain of at least **~5ms** (cost of adding a node)
-
-The results have been obtained by toggling the deepest `x-trap-focus` inside nested `x-b` (Chrome v52 stable for MacOs -> <http://localhost:8080/components/blockingElements/demo/ce.html?ce=v0>) ![results](https://cloud.githubusercontent.com/assets/6173664/17538133/914f365a-5e57-11e6-9b91-1c6b7eb22d57.png)
-
-### Polyfilled vs native inert
-
-Chrome recently landed [the `inert` attribute implementation](https://codereview.chromium.org/2088453002/) behind a flag; these tests show a **15x performance improvement** 🎉
+`blockingElements` with native inert is **~15x faster** than polyfilled inert 🎉 🎉 🎉
 
 | with polyfilled inert (M58) | with native inert (M60) |
 |----------|--------|
