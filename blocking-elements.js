@@ -22,6 +22,7 @@
   const _alreadyInertElements = Symbol();
   const _topElParents = Symbol();
   const _siblingsToRestore = Symbol();
+  const _asyncId = Symbol();
 
   /* Symbols for private static methods */
   const _topChanged = Symbol();
@@ -63,6 +64,15 @@
        * @private
        */
       this[_alreadyInertElements] = new Set();
+
+      /**
+       * Used to debounce `_topChanged` calls.
+       * @type {Number}
+       * @private
+       */
+      this[_asyncId] = null;
+
+      this[_topChanged] = this[_topChanged].bind(this);
     }
 
     /**
@@ -70,6 +80,10 @@
      * the blocking elements
      */
     destructor() {
+      if (this[_asyncId]) {
+        window.clearTimeout(this[_asyncId]);
+        this[_asyncId] = null;
+      }
       // Restore original inertness.
       this[_restoreInertedSiblings](this[_topElParents]);
       this[_blockingElements] = null;
@@ -96,8 +110,10 @@
       }
       // Remove it from the stack, we'll bring it to the top.
       this.remove(element);
-      this[_topChanged](element);
       this[_blockingElements].push(element);
+
+      this[_asyncId] && window.clearTimeout(this[_asyncId]);
+      this[_asyncId] = window.setTimeout(this[_topChanged], 0);
     }
 
     /**
@@ -114,7 +130,8 @@
       this[_blockingElements].splice(i, 1);
       // Top changed only if the removed element was the top element.
       if (i === this[_blockingElements].length) {
-        this[_topChanged](this.top);
+        this[_asyncId] && window.clearTimeout(this[_asyncId]);
+        this[_asyncId] = window.setTimeout(this[_topChanged], 0);
       }
       return true;
     }
@@ -138,13 +155,26 @@
       return this[_blockingElements].indexOf(element) !== -1;
     }
 
+
+    /**
+     * Forces any pending update of the DOM tree without waiting for
+     * the next animation frame.
+     */
+    flush() {
+      if (this[_asyncId]) {
+        window.clearTimeout(this[_asyncId]);
+        this[_topChanged]();
+      }
+    }
+
     /**
      * Sets `inert` to all document elements except the new top element, its parents,
      * and its distributed content.
-     * @param {?HTMLElement} newTop If null, it means the last blocking element was removed.
      * @private
      */
-    [_topChanged](newTop) {
+    [_topChanged]() {
+      this[_asyncId] = null;
+      const newTop = this.top;
       const toKeepInert = this[_alreadyInertElements];
       const oldParents = this[_topElParents];
       // No new top, reset old top if any.

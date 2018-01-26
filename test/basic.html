@@ -100,6 +100,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.equal(document.$blockingElements.top, null);
         assert.throws(function() {
           document.$blockingElements.push(document.createElement('div'));
+          document.$blockingElements.flush();
         }, 'Non-connected element cannot be a blocking element');
         assert.equal(document.$blockingElements.top, null, 'element is not a blocking element');
       });
@@ -128,12 +129,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       test('multiple push() update elements inertness', function() {
         document.$blockingElements.push(container.children[0]);
+        document.$blockingElements.flush();
         assert.equal(document.$blockingElements.top, container.children[0]);
         assert.isNotOk(container.children[0].inert, '1st child active');
         assert.isTrue(container.children[1].inert, '2nd child inert');
         assert.isTrue(container.children[2].inert, '3rd child inert');
 
         document.$blockingElements.push(container.children[1]);
+        document.$blockingElements.flush();
         assert.isTrue(document.$blockingElements.has(container.children[0]), '1st child is a blocking element');
         assert.equal(document.$blockingElements.top, container.children[1], '2nd child is top blocking element');
         assert.isTrue(container.children[0].inert, '1st child inert');
@@ -184,6 +187,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       test('push() keeps parent tree active', function() {
         assert.equal(document.$blockingElements.top, null);
         document.$blockingElements.push(inner.children[0]);
+        document.$blockingElements.flush();
         assert.equal(document.$blockingElements.top, inner.children[0]);
 
         // node and its parents should be active

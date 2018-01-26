@@ -79,6 +79,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         // Distributed element as a blocking element.
         document.$blockingElements.push(container.children[0]);
+        document.$blockingElements.flush();
         assert.equal(document.$blockingElements.top, container.children[0]);
         assert.isTrue(shadowBtn.inert, 'button in shadow dom inert');
         assert.isNotOk(container.children[0].inert, '1st child active');
@@ -87,6 +88,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         // Button in shadow dom as a blocking element, its siblings should be inert
         document.$blockingElements.push(shadowBtn);
+        document.$blockingElements.flush();
         assert.isTrue(document.$blockingElements.has(container.children[0]), '1st child is a blocking element');
         assert.equal(document.$blockingElements.top, shadowBtn);
         assert.isNotOk(shadowBtn.inert, 'button in shadow dom active');
@@ -102,6 +104,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         container.parentNode.removeChild(container);
         assert.throws(function() {
           document.$blockingElements.push(container.shadowRoot.firstElementChild);
+          document.$blockingElements.flush();
         }, 'Non-connected element cannot be a blocking element');
         assert.equal(document.$blockingElements.top, null, 'element is not a blocking element');
       });
@@ -138,6 +141,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         // Distributed element as a blocking element.
         document.$blockingElements.push(container.children[0]);
+        document.$blockingElements.flush();
         assert.equal(document.$blockingElements.top, container.children[0]);
         assert.isTrue(shadowBtn.inert, 'button in shadow dom inert');
         assert.isNotOk(container.children[0].inert, '1st child active');
@@ -146,6 +150,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         // Button in shadow dom as a blocking element, its siblings should be inert
         document.$blockingElements.push(shadowBtn);
+        document.$blockingElements.flush();
         assert.isTrue(document.$blockingElements.has(container.children[0]), '1st child is a blocking element');
         assert.equal(document.$blockingElements.top, shadowBtn);
         assert.isNotOk(shadowBtn.inert, 'button in shadow dom active');
