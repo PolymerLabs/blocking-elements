@@ -98,6 +98,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.isNotOk(container.children[2].inert, '3rd child inert restored');
       });
 
+      test('push() adds only elements contained in document', function() {
+        assert.equal(document.$blockingElements.top, null);
+        // We remove the container, then we try to add one of its shadowRoot children.
+        container.parentNode.removeChild(container);
+        assert.throws(function() {
+          document.$blockingElements.push(container.shadowRoot.firstElementChild);
+        }, 'Non-connected element cannot be a blocking element');
+        assert.equal(document.$blockingElements.top, null, 'element is not a blocking element');
+      });
+
     });
 
     suite('ShadowDom v1', function() {
@@ -147,6 +157,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.isNotOk(container.children[0].inert, '1st child inert restored');
         assert.isNotOk(container.children[1].inert, '2nd child inert restored');
         assert.isNotOk(container.children[2].inert, '3rd child inert restored');
+      });
+
+      test('push() adds only elements contained in document', function() {
+        assert.equal(document.$blockingElements.top, null);
+        // We remove the container, then we try to add one of its shadowRoot children.
+        container.parentNode.removeChild(container);
+        assert.throws(function() {
+          document.$blockingElements.push(container.shadowRoot.firstElementChild);
+        }, 'Non-connected element cannot be a blocking element');
+        assert.equal(document.$blockingElements.top, null, 'element is not a blocking element');
       });
 
     });

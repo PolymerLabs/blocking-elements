@@ -105,15 +105,15 @@
      * @param {!HTMLElement} element
      */
     push(element) {
-      if (this.has(element)) {
-        console.warn('element already added in document.blockingElements');
+      if (!element || element === this.top) {
         return;
       }
+      // Remove it from the stack, we'll bring it to the top.
+      this.remove(element);
       this[_blockingElements].push(element);
 
       this[_asyncId] && window.clearTimeout(this[_asyncId]);
-      // Delay of 1ms to execute after next render.
-      this[_asyncId] = window.setTimeout(this[_topChanged], 1);
+      this[_asyncId] = window.setTimeout(this[_topChanged], 0);
     }
 
     /**
@@ -178,14 +178,20 @@
       const newTop = this.top;
       const toKeepInert = this[_alreadyInertElements];
       const oldParents = this[_topElParents];
-      const newParents = this[_getParents](newTop);
-      this[_topElParents] = newParents;
       // No new top, reset old top if any.
       if (!newTop) {
         this[_restoreInertedSiblings](oldParents);
         toKeepInert.clear();
+        this[_topElParents] = [];
         return;
       }
+
+      const newParents = this[_getParents](newTop);
+      // New top is not contained in the main document!
+      if (newParents[newParents.length - 1].parentNode !== document.body) {
+        throw 'Non-connected element cannot be a blocking element';
+      }
+      this[_topElParents] = newParents;
 
       const toSkip = this[_getDistributedChildren](newTop);
 
