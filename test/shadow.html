@@ -104,6 +104,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         container.parentNode.removeChild(container);
         assert.throws(function() {
           document.$blockingElements.push(container.shadowRoot.firstElementChild);
+          document.$blockingElements.flush();
         }, 'Non-connected element cannot be a blocking element');
         assert.equal(document.$blockingElements.top, null, 'element is not a blocking element');
       });
