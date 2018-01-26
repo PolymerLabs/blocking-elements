@@ -131,8 +131,7 @@
       // Top changed only if the removed element was the top element.
       if (i === this[_blockingElements].length) {
         this[_asyncId] && window.clearTimeout(this[_asyncId]);
-        // Delay of 1ms to execute after next render.
-        this[_asyncId] = window.setTimeout(this[_topChanged], 1);
+        this[_asyncId] = window.setTimeout(this[_topChanged], 0);
       }
       return true;
     }
