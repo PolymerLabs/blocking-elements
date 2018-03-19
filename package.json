@@ -22,8 +22,7 @@
     "lint": "eslint blocking-elements.js",
     "test": "npm run lint && npm run build && bower install && polymer test",
     "build": "rollem",
-    "dev": "rollem --watch",
-    "prepublish": "npm run test && npm run build"
+    "dev": "rollem --watch"
   },
   "peerDependencies": {
     "wigc-inert": "^1.1.6"
