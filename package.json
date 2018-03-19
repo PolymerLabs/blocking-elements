@@ -1,0 +1,44 @@
+{
+  "name": "blocking-elements",
+  "version": "0.0.1",
+  "description": "A polyfill for the proposed blocking elments stack API",
+  "main": "dist/blocking-elements.js",
+  "author": "Valdrin Koshi <valdrin@google.com>",
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PolymerLabs/blockingElements.git"
+  },
+  "keywords": [
+    "blocking-elements",
+    "polyfill",
+    "browser"
+  ],
+  "bugs": {
+    "url": "https://github.com/PolymerLabs/blockingElements/issues"
+  },
+  "homepage": "https://github.com/PolymerLabs/blockingElements#readme",
+  "scripts": {
+    "lint": "eslint blocking-elements.js",
+    "test": "npm run lint && npm run build && bower install && polymer test",
+    "build": "rollem",
+    "dev": "rollem --watch"
+  },
+  "peerDependencies": {
+    "wigc-inert": "^1.1.6"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-plugin-external-helpers": "^6.22.0",
+    "babel-polyfill": "^6.13.0",
+    "babel-preset-env": "^1.6.1",
+    "eslint": "^4.0.0",
+    "eslint-config-google": "^0.9.1",
+    "rollem": "^1.11.0",
+    "rollup": "^0.53.0",
+    "rollup-plugin-babel": "^3.0.2",
+    "rollup-plugin-commonjs": "^8.0.2",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "rollup-plugin-uglify": "^2.0.1"
+  }
+}

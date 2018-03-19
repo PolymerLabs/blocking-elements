@@ -1,5 +1,5 @@
 /**
- *
+ * @license
  * Copyright 2016 Google Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,6 @@
  */
 
 (function(document) {
-
   /* Symbols for private properties */
   const _blockingElements = Symbol();
   const _alreadyInertElements = Symbol();
@@ -38,8 +37,10 @@
    * The stack can be updated with the methods `push, remove, pop`.
    */
   class BlockingElements {
+    /**
+      * New BlockingElements instance.
+      */
     constructor() {
-
       /**
        * The blocking elements.
        * @type {Array<HTMLElement>}
@@ -104,7 +105,7 @@
      * Removes the element from the blocking elements. Returns true if the element
      * was removed.
      * @param {!HTMLElement} element
-     * @returns {boolean}
+     * @return {boolean}
      */
     remove(element) {
       const i = this[_blockingElements].indexOf(element);
@@ -121,7 +122,7 @@
 
     /**
      * Remove the top blocking element and returns it.
-     * @returns {HTMLElement|null} the removed element.
+     * @return {HTMLElement|null} the removed element.
      */
     pop() {
       const top = this.top;
@@ -132,7 +133,7 @@
     /**
      * Returns if the element is a blocking element.
      * @param {!HTMLElement} element
-     * @returns {boolean}
+     * @return {boolean}
      */
     has(element) {
       return this[_blockingElements].indexOf(element) !== -1;
@@ -158,7 +159,7 @@
       const newParents = this[_getParents](newTop);
       // New top is not contained in the main document!
       if (newParents[newParents.length - 1].parentNode !== document.body) {
-        throw 'Non-connected element cannot be a blocking element';
+        throw Error('Non-connected element cannot be a blocking element');
       }
       this[_topElParents] = newParents;
 
@@ -272,7 +273,7 @@
     /**
      * Returns if the element is inertable.
      * @param {!HTMLElement} element
-     * @returns {boolean}
+     * @return {boolean}
      * @private
      */
     [_isInertable](element) {
@@ -283,7 +284,7 @@
      * Returns the list of newParents of an element, starting from element (included)
      * up to `document.body` (excluded).
      * @param {HTMLElement} element
-     * @returns {Array<HTMLElement>}
+     * @return {Array<HTMLElement>}
      * @private
      */
     [_getParents](element) {
@@ -325,7 +326,7 @@
      * Returns the distributed children of the element's shadow root.
      * Returns null if the element doesn't have a shadow root.
      * @param {!element} element
-     * @returns {Set<HTMLElement>|null}
+     * @return {Set<HTMLElement>|null}
      * @private
      */
     [_getDistributedChildren](element) {
@@ -334,13 +335,15 @@
         return null;
       }
       const result = new Set();
-      let i, j, nodes;
+      let i;
+      let j;
+      let nodes;
       // ShadowDom v1
       const slots = shadowRoot.querySelectorAll('slot');
       if (slots.length && slots[0].assignedNodes) {
         for (i = 0; i < slots.length; i++) {
           nodes = slots[i].assignedNodes({
-            flatten: true
+            flatten: true,
           });
           for (j = 0; j < nodes.length; j++) {
             if (nodes[j].nodeType === Node.ELEMENT_NODE) {
@@ -368,5 +371,4 @@
   }
 
   document.$blockingElements = new BlockingElements();
-
 })(document);
