@@ -15,37 +15,33 @@
  * limitations under the License.
  */
 
-/**
- * The FixtureLoader class takes a URL, loads its contents, and inserts them into the DOM.
- * It also provides a `destroy` method to clean out the page contents.
- */
-window.Fixture = class Fixture {
-  /**
-   * Setup initial state.
-   */
-  constructor() {
-    this._fixture = undefined;
+window.Fixture = function Fixture() {
+  if (!(this instanceof Fixture)) {
+    throw new TypeError('Cannot call a class as a function');
   }
+
+  this._fixture = undefined;
 
   /**
    * Stick the html into a `<div id="fixture">`.
    * @param {!string} html
    * @return {Promise}
    */
-  load(html) {
+  this.load = function(html) {
     this._fixture = document.createElement('div');
     this._fixture.id = 'fixture';
     document.body.appendChild(this._fixture);
     this._fixture.innerHTML = html;
-    const children = this._fixture.children;
+    var children = this._fixture.children;
     return Promise.resolve(children.length === 1 ? children[0] : children);
-  }
+  };
 
   /**
    * Remove the current fixture and delete it.
    */
-  destroy() {
+  this.destroy = function() {
     document.body.removeChild(this._fixture);
     this._fixture = undefined;
-  }
+  };
+  return this;
 };
