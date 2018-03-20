@@ -67,7 +67,9 @@ Run the tests locally by navigating to http://localhost:8080/test/
 
 Performance is dependent on the `inert` polyfill performance. Chrome recently landed [the `inert` attribute implementation](https://codereview.chromium.org/2088453002/) behind a flag.
 
-Let's compare the how long it takes to toggle the deepest `x-trap-focus` inside nested `x-b` of the demo page (<http://localhost:8080/demo/ce.html?ce=v1>) ![results](https://cloud.githubusercontent.com/assets/6173664/17538133/914f365a-5e57-11e6-9b91-1c6b7eb22d57.png).
+Let's compare the how long it takes to toggle the deepest `x-trap-focus` inside nested `x-b` of the demo page (<http://localhost:8080/demo/ce.html?ce=v1>) 
+
+![results](https://cloud.githubusercontent.com/assets/6173664/17538133/914f365a-5e57-11e6-9b91-1c6b7eb22d57.png).
 
 `blockingElements` with native inert is **~15x faster** than polyfilled inert 🎉 🎉 🎉
 
