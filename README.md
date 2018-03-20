@@ -76,11 +76,12 @@ Let's compare the how long it takes to toggle the deepest `x-trap-focus` inside 
 
 ## Local development
 
-Install the dependencies via `npm` and the [polymer CLI](https://github.com/Polymer/polymer-cli):
+We use the [Polymer CLI](https://github.com/Polymer/polymer-cli).
+Install it globally with `npm install -g polymer-cli`.
+
+To run locally dependencies & serve resources:
 ```bash
-$ npm install -g polymer-cli
 $ npm install
 $ polymer install
+$ polymer serve --npm
 ```
-
-Serve the resources with `polymer serve --npm -o`
