@@ -43,8 +43,6 @@
     "wicg-inert": "^1.1.6"
   },
   "easySauce": {
-    "username": "valdrin@google.com",
-    "key": "c0e0306e-4470-4a8b-9cde-93aca8db4c13",
     "testPath": "/test/",
     "port": "8080",
     "service": "sauce-connect",
