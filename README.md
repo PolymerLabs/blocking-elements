@@ -4,39 +4,6 @@
 
 Implementation of proposal <https://github.com/whatwg/html/issues/897>
 
-
-## Install & use
-
-Blocking Elements relies on `inert` attribute, so make sure to include its polyfill.
-
-```bash
-npm install --save wicg-inert
-npm install --save blocking-elements
-```
-
-Import the `inert` polyfill **before** the `blocking-elements` one.
-
-```html
-<script src="./node_modules/wicg-inert/dist/inert.js"></script>
-<script src="./node_modules/blocking-elements/dist/blocking-elements.js"></script>
-
-<div id="container">
-  <button onclick="makeBlocking(container)">make blocking</button> 
-  <button onclick="undoBlocking(container)">undo blocking</button> 
-</div>
-
-<button>some button</button>
-
-<script>
-  function makeBlocking(element) {
-    document.$blockingElements.push(element);
-  }
-  function undoBlocking(element) {
-    document.$blockingElements.remove(element);
-  }
-</script>
-```
-
 `document.$blockingElements` manages a stack of elements that inert the interaction outside them.
 
 - the stack can be updated with the methods `push(elem), remove(elem), pop(elem)`
@@ -58,6 +25,44 @@ Wrapping the focus requires to find all the focusable nodes within the top block
 
 This approach doesn't allow the focus to move outside the window (e.g. to the browser's url bar, dev console if opened, etc.), and is less robust when used with assistive technology (e.g. android talkback allows to move focus with swipe on screen, Apple Voiceover allows to move focus with special keyboard combinations).
 
+## Install & use
+
+Blocking Elements relies on the [`inert` attribute](https://github.com/WICG/inert) and uses [`Set` objects](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set), so make sure to include their polyfills as needed.
+
+```bash
+npm install --save babel-polyfill
+npm install --save wicg-inert
+npm install --save blocking-elements
+```
+
+```html
+<script src="./node_modules/babel-polyfill/dist/polyfill.min.js"></script>
+<script src="./node_modules/wicg-inert/dist/inert.min.js"></script>
+<script src="./node_modules/blocking-elements/dist/blocking-elements.min.js"></script>
+
+<div id="container">
+  <button onclick="makeBlocking(container)">make blocking</button> 
+  <button onclick="undoBlocking(container)">undo blocking</button> 
+</div>
+
+<button>some button</button>
+
+<script>
+  function makeBlocking(element) {
+    document.$blockingElements.push(element);
+  }
+  function undoBlocking(element) {
+    document.$blockingElements.remove(element);
+  }
+</script>
+```
+
+## Local development
+
+Install the dependencies with `npm install` and serve the resources.
+
+Run the tests locally by navigating to http://localhost:8080/test/
+
 ## Performance
 
 Performance is dependent on the `inert` polyfill performance. Chrome recently landed [the `inert` attribute implementation](https://codereview.chromium.org/2088453002/) behind a flag.
@@ -72,10 +77,3 @@ Let's compare the how long it takes to toggle the deepest `x-trap-focus` inside 
 | ![polyfill-inert-2.png](assets/polyfill-inert-2.png) | ![native-inert-2.png](assets/native-inert-2.png) |
 | ![polyfill-inert-3.png](assets/polyfill-inert-3.png) | ![native-inert-3.png](assets/native-inert-3.png) |
 | ![polyfill-inert-4.png](assets/polyfill-inert-4.png) | ![native-inert-4.png](assets/native-inert-4.png) |
-
-
-## Local development
-
-Install the dependencies with `npm install` and serve the resources.
-
-Run the tests locally by navigating to http://localhost:8080/test/
