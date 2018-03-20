@@ -201,7 +201,6 @@
           <button>button</button>
           <button>button</button>
         </div>`);
-      document.$blockingElements.push(container);
     });
 
     afterEach(function() {
@@ -210,6 +209,7 @@
     });
 
     it('should inert new siblings', function(done) {
+      document.$blockingElements.push(container);
       var input = document.createElement('input');
       container.parentNode.appendChild(input);
       // Wait for mutation observer to see the change.
@@ -220,16 +220,31 @@
     });
 
     it('should inert new parent siblings', function(done) {
+      document.$blockingElements.push(container);
       var input = document.createElement('input');
-      container.parentNode.parentNode.appendChild(input);
+      document.body.appendChild(input);
       // Wait for mutation observer to see the change.
       setTimeout(function() {
         assert.isTrue(input.inert, 'inerted');
+        document.body.removeChild(input);
+        done();
+      });
+    });
+
+    it('should restore inertness of removed siblings', function(done) {
+      document.$blockingElements.push(container.children[0]);
+      var child1 = container.children[1];
+      assert.isTrue(child1.inert, 'inerted');
+      container.removeChild(child1);
+      // Wait for mutation observer to see the change.
+      setTimeout(function() {
+        assert.isFalse(child1.inert, 'inert restored');
         done();
       });
     });
 
     it('should remove top if it was removed', function(done) {
+      document.$blockingElements.push(container);
       container.parentNode.removeChild(container);
       // Wait for mutation observer to see the change.
       setTimeout(function() {

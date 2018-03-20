@@ -51,6 +51,7 @@ var createClass = function () {
   var _alreadyInertElements = Symbol();
   var _topElParents = Symbol();
   var _siblingsToRestore = Symbol();
+  var _parentMO = Symbol();
 
   /* Symbols for private static methods */
   var _topChanged = Symbol();
@@ -60,6 +61,7 @@ var createClass = function () {
   var _getParents = Symbol();
   var _getDistributedChildren = Symbol();
   var _isInertable = Symbol();
+  var _handleMutations = Symbol();
 
   /**
    * `BlockingElements` manages a stack of elements that inert the interaction
@@ -69,8 +71,8 @@ var createClass = function () {
 
   var BlockingElements = function () {
     /**
-      * New BlockingElements instance.
-      */
+     * New BlockingElements instance.
+     */
     function BlockingElements() {
       classCallCheck(this, BlockingElements);
 
@@ -264,8 +266,10 @@ var createClass = function () {
           newInert.inert = false;
           siblingsToRestore.delete(newInert);
         }
-        oldInert[_siblingsToRestore] = null;
+        newInert[_parentMO] = oldInert[_parentMO];
+        oldInert[_parentMO] = null;
         newInert[_siblingsToRestore] = siblingsToRestore;
+        oldInert[_siblingsToRestore] = null;
       }
 
       /**
@@ -280,13 +284,15 @@ var createClass = function () {
     }, {
       key: _restoreInertedSiblings,
       value: function value(elements) {
-        for (var i = 0, l = elements.length; i < l; i++) {
+        elements.forEach(function (el) {
+          el[_parentMO].disconnect();
+          el[_parentMO] = null;
           var _iteratorNormalCompletion = true;
           var _didIteratorError = false;
           var _iteratorError = undefined;
 
           try {
-            for (var _iterator = elements[i][_siblingsToRestore][Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            for (var _iterator = el[_siblingsToRestore][Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
               var sibling = _step.value;
 
               sibling.inert = false;
@@ -306,8 +312,8 @@ var createClass = function () {
             }
           }
 
-          elements[i][_siblingsToRestore] = null;
-        }
+          el[_siblingsToRestore] = null;
+        });
       }
 
       /**
@@ -346,6 +352,121 @@ var createClass = function () {
           }
           // Store the siblings that were inerted.
           element[_siblingsToRestore] = inertedSiblings;
+          // Observe only immediate children mutations on the parent.
+          element[_parentMO] = new MutationObserver(this[_handleMutations].bind(this));
+          element[_parentMO].observe(element.parentNode, {
+            childList: true
+          });
+        }
+      }
+
+      /**
+       * Handles newly added/removed nodes by toggling their inertness.
+       * It also checks if the current top Blocking Element has been removed,
+       * notifying and removing it.
+       * @param {Array<MutationRecord>} mutations
+       * @private
+       */
+
+    }, {
+      key: _handleMutations,
+      value: function value(mutations) {
+        var parents = this[_topElParents];
+        var toKeepInert = this[_alreadyInertElements];
+        var _iteratorNormalCompletion2 = true;
+        var _didIteratorError2 = false;
+        var _iteratorError2 = undefined;
+
+        try {
+          for (var _iterator2 = mutations[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+            var mutation = _step2.value;
+
+            var idx = mutation.target === document.body ? parents.length : parents.indexOf(mutation.target);
+            var inertedChild = parents[idx - 1];
+            var inertedSiblings = inertedChild[_siblingsToRestore];
+
+            // To restore.
+            var _iteratorNormalCompletion3 = true;
+            var _didIteratorError3 = false;
+            var _iteratorError3 = undefined;
+
+            try {
+              for (var _iterator3 = mutation.removedNodes[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                var sibling = _step3.value;
+
+                if (sibling === inertedChild) {
+                  console.info('Detected removal of the top Blocking Element.');
+                  this.pop();
+                  return;
+                }
+                if (inertedSiblings.has(sibling)) {
+                  sibling.inert = false;
+                  inertedSiblings.delete(sibling);
+                }
+              }
+
+              // To inert.
+            } catch (err) {
+              _didIteratorError3 = true;
+              _iteratorError3 = err;
+            } finally {
+              try {
+                if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                  _iterator3.return();
+                }
+              } finally {
+                if (_didIteratorError3) {
+                  throw _iteratorError3;
+                }
+              }
+            }
+
+            var _iteratorNormalCompletion4 = true;
+            var _didIteratorError4 = false;
+            var _iteratorError4 = undefined;
+
+            try {
+              for (var _iterator4 = mutation.addedNodes[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+                var _sibling = _step4.value;
+
+                if (!this[_isInertable](_sibling)) {
+                  continue;
+                }
+                if (toKeepInert && _sibling.inert) {
+                  toKeepInert.add(_sibling);
+                } else {
+                  _sibling.inert = true;
+                  inertedSiblings.add(_sibling);
+                }
+              }
+            } catch (err) {
+              _didIteratorError4 = true;
+              _iteratorError4 = err;
+            } finally {
+              try {
+                if (!_iteratorNormalCompletion4 && _iterator4.return) {
+                  _iterator4.return();
+                }
+              } finally {
+                if (_didIteratorError4) {
+                  throw _iteratorError4;
+                }
+              }
+            }
+          }
+        } catch (err) {
+          _didIteratorError2 = true;
+          _iteratorError2 = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion2 && _iterator2.return) {
+              _iterator2.return();
+            }
+          } finally {
+            if (_didIteratorError2) {
+              throw _iteratorError2;
+            }
+          }
         }
       }
 

@@ -21,6 +21,7 @@
   const _alreadyInertElements = Symbol();
   const _topElParents = Symbol();
   const _siblingsToRestore = Symbol();
+  const _parentMO = Symbol();
 
   /* Symbols for private static methods */
   const _topChanged = Symbol();
@@ -30,6 +31,7 @@
   const _getParents = Symbol();
   const _getDistributedChildren = Symbol();
   const _isInertable = Symbol();
+  const _handleMutations = Symbol();
 
   /**
    * `BlockingElements` manages a stack of elements that inert the interaction
@@ -38,8 +40,8 @@
    */
   class BlockingElements {
     /**
-      * New BlockingElements instance.
-      */
+     * New BlockingElements instance.
+     */
     constructor() {
       /**
        * The blocking elements.
@@ -212,8 +214,10 @@
         newInert.inert = false;
         siblingsToRestore.delete(newInert);
       }
-      oldInert[_siblingsToRestore] = null;
+      newInert[_parentMO] = oldInert[_parentMO];
+      oldInert[_parentMO] = null;
       newInert[_siblingsToRestore] = siblingsToRestore;
+      oldInert[_siblingsToRestore] = null;
     }
 
     /**
@@ -225,12 +229,14 @@
      * @private
      */
     [_restoreInertedSiblings](elements) {
-      for (let i = 0, l = elements.length; i < l; i++) {
-        for (let sibling of elements[i][_siblingsToRestore]) {
+      elements.forEach((el) => {
+        el[_parentMO].disconnect();
+        el[_parentMO] = null;
+        for (let sibling of el[_siblingsToRestore]) {
           sibling.inert = false;
         }
-        elements[i][_siblingsToRestore] = null;
-      }
+        el[_siblingsToRestore] = null;
+      });
     }
 
     /**
@@ -267,6 +273,56 @@
         }
         // Store the siblings that were inerted.
         element[_siblingsToRestore] = inertedSiblings;
+        // Observe only immediate children mutations on the parent.
+        element[_parentMO] = new MutationObserver(this[_handleMutations].bind(this));
+        element[_parentMO].observe(element.parentNode, {
+          childList: true,
+        });
+      }
+    }
+
+    /**
+     * Handles newly added/removed nodes by toggling their inertness.
+     * It also checks if the current top Blocking Element has been removed,
+     * notifying and removing it.
+     * @param {Array<MutationRecord>} mutations
+     * @private
+     */
+    [_handleMutations](mutations) {
+      const parents = this[_topElParents];
+      const toKeepInert = this[_alreadyInertElements];
+      for (const mutation of mutations) {
+        const idx = mutation.target === document.body ?
+          parents.length :
+          parents.indexOf(mutation.target);
+        const inertedChild = parents[idx - 1];
+        const inertedSiblings = inertedChild[_siblingsToRestore];
+
+        // To restore.
+        for (const sibling of mutation.removedNodes) {
+          if (sibling === inertedChild) {
+            console.info('Detected removal of the top Blocking Element.');
+            this.pop();
+            return;
+          }
+          if (inertedSiblings.has(sibling)) {
+            sibling.inert = false;
+            inertedSiblings.delete(sibling);
+          }
+        }
+
+        // To inert.
+        for (const sibling of mutation.addedNodes) {
+          if (!this[_isInertable](sibling)) {
+            continue;
+          }
+          if (toKeepInert && sibling.inert) {
+            toKeepInert.add(sibling);
+          } else {
+            sibling.inert = true;
+            inertedSiblings.add(sibling);
+          }
+        }
       }
     }
 
