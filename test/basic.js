@@ -29,6 +29,7 @@
     var container;
 
     beforeEach(function() {
+      assert.equal(document.$blockingElements.top, null);
       container = fixtureLoader.load(`
       <div>
         <button>button</button>
@@ -48,7 +49,6 @@
 
     it('push() adds an element to the stack, remove() removes it', function() {
       var child = container.children[0];
-      assert.equal(document.$blockingElements.top, null);
       document.$blockingElements.push(child);
       assert.equal(document.$blockingElements.top, child);
 
@@ -58,7 +58,6 @@
 
     it('push() can be used to make an already blocking element the top blocking element',
       function() {
-        assert.equal(document.$blockingElements.top, null);
         document.$blockingElements.push(container.children[0]);
         assert.equal(document.$blockingElements.top, container.children[0],
           'child0 is top blocking element');
@@ -73,7 +72,6 @@
       });
 
     it('push() adds only elements contained in document', function() {
-      assert.equal(document.$blockingElements.top, null);
       assert.throws(function() {
         document.$blockingElements.push(document.createElement('div'));
       }, 'Non-connected element cannot be a blocking element');
@@ -94,7 +92,6 @@
     });
 
     it('preserve already inert elements', function() {
-      assert.equal(document.$blockingElements.top, null);
       var child = container.children[0];
       // Make children[1] inert
       container.children[1].inert = true;
@@ -155,6 +152,7 @@
     var inner;
 
     beforeEach(function() {
+      assert.equal(document.$blockingElements.top, null);
       container = fixtureLoader.load(`
         <div>
           <button>button</button>
@@ -175,7 +173,6 @@
     });
 
     it('push() keeps parent tree active', function() {
-      assert.equal(document.$blockingElements.top, null);
       document.$blockingElements.push(inner.children[0]);
       assert.equal(document.$blockingElements.top, inner.children[0]);
 
@@ -190,6 +187,70 @@
       assert.isTrue(container.children[0].inert, '1st child inert');
       assert.isTrue(container.children[1].inert, '2nd child inert');
       assert.isTrue(container.children[2].inert, '3rd child inert');
+    });
+  });
+
+  describe('mutations', function() {
+    var container;
+
+    beforeEach(function() {
+      assert.equal(document.$blockingElements.top, null);
+      container = fixtureLoader.load(`
+        <div>
+          <button>button</button>
+          <button>button</button>
+          <button>button</button>
+        </div>`);
+    });
+
+    afterEach(function() {
+      emptyBlockingElements();
+      fixtureLoader.destroy();
+    });
+
+    it('should inert new siblings', function(done) {
+      document.$blockingElements.push(container);
+      var input = document.createElement('input');
+      container.parentNode.appendChild(input);
+      // Wait for mutation observer to see the change.
+      setTimeout(function() {
+        assert.isTrue(input.inert, 'inerted');
+        done();
+      });
+    });
+
+    it('should inert new parent siblings', function(done) {
+      document.$blockingElements.push(container);
+      var input = document.createElement('input');
+      document.body.appendChild(input);
+      // Wait for mutation observer to see the change.
+      setTimeout(function() {
+        assert.isTrue(input.inert, 'inerted');
+        document.body.removeChild(input);
+        done();
+      });
+    });
+
+    it('should restore inertness of removed siblings', function(done) {
+      document.$blockingElements.push(container.children[0]);
+      var child1 = container.children[1];
+      assert.isTrue(child1.inert, 'inerted');
+      container.removeChild(child1);
+      // Wait for mutation observer to see the change.
+      setTimeout(function() {
+        assert.isFalse(child1.inert, 'inert restored');
+        done();
+      });
+    });
+
+    it('should remove top if it was removed', function(done) {
+      document.$blockingElements.push(container);
+      container.parentNode.removeChild(container);
+      // Wait for mutation observer to see the change.
+      setTimeout(function() {
+        assert.equal(document.$blockingElements.top, null);
+        done();
+      });
     });
   });
 })();
