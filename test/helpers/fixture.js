@@ -25,7 +25,7 @@ window.Fixture = function Fixture() {
   /**
    * Stick the html into a `<div id="fixture">`.
    * @param {!string} html
-   * @return {Promise}
+   * @return {Element|NodeList<Element>|null}
    */
   this.load = function(html) {
     this._fixture = document.createElement('div');
@@ -33,7 +33,7 @@ window.Fixture = function Fixture() {
     document.body.appendChild(this._fixture);
     this._fixture.innerHTML = html;
     var children = this._fixture.children;
-    return Promise.resolve(children.length === 1 ? children[0] : children);
+    return children.length === 1 ? children[0] : children;
   };
 
   /**

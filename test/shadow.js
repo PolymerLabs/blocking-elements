@@ -34,18 +34,15 @@
     var container;
 
     beforeEach(function() {
-      return fixtureLoader.load(`
+      container = fixtureLoader.load(`
         <div>
           <button>button</button>
           <button>button</button>
           <button>button</button>
-        </div>
-        `).then((f) => {
-        container = f;
-        var template = document.createElement('template');
-        template.innerHTML = `<button>inner button</button><content></content>`;
-        container.createShadowRoot().appendChild(template.content);
-      });
+        </div>`);
+      var template = document.createElement('template');
+      template.innerHTML = `<button>inner button</button><content></content>`;
+      container.createShadowRoot().appendChild(template.content);
     });
 
     afterEach(function() {
@@ -95,24 +92,22 @@
 
     var container;
 
-    beforeEach(function() {
-      return fixtureLoader.load(`
+    beforeEach(function(done) {
+      container = fixtureLoader.load(`
         <div>
           <button>button</button>
           <button>button</button>
           <button>button</button>
-        </div>
-        `)
-        .then((f) => {
-          container = f;
-          var template = document.createElement('template');
-          template.innerHTML = `<button>inner button</button><slot></slot>`;
-          container.attachShadow({
-            mode: 'open',
-          }).appendChild(template.content);
-          // Needed by ShadowDOM polyfill.
-          return new Promise((resolve) => setTimeout(resolve));
-        });
+        </div>`);
+      var template = document.createElement('template');
+      template.innerHTML = `<button>inner button</button><slot></slot>`;
+      container.attachShadow({
+        mode: 'open',
+      }).appendChild(template.content);
+      // Needed by ShadowDOM polyfill.
+      setTimeout(function() {
+        done();
+      });
     });
 
     afterEach(function() {

@@ -29,15 +29,12 @@
     var container;
 
     beforeEach(function() {
-      return fixtureLoader.load(`
+      container = fixtureLoader.load(`
       <div>
         <button>button</button>
         <button>button</button>
         <button>button</button>
-      </div>`)
-        .then((f) => {
-          container = f;
-        });
+      </div>`);
     });
 
     afterEach(function() {
@@ -158,7 +155,7 @@
     var inner;
 
     beforeEach(function() {
-      return fixtureLoader.load(`
+      container = fixtureLoader.load(`
         <div>
           <button>button</button>
           <button>button</button>
@@ -168,11 +165,8 @@
             <button>button</button>
             <button>button</button>
           </div>
-        </div>
-      `).then((f) => {
-        container = f;
-        inner = container.querySelector('#inner');
-      });
+        </div>`);
+      inner = container.querySelector('#inner');
     });
 
     afterEach(function() {
