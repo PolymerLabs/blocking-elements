@@ -1,8 +1,8 @@
 [![Build Status](https://travis-ci.org/PolymerLabs/blocking-elements.svg?branch=master)](https://travis-ci.org/PolymerLabs/blocking-elements)
 
-# `blockingElements` stack API
+# Blocking Elements stack API
 
-Implementation of proposal <https://github.com/whatwg/html/issues/897>
+Implementation of proposal https://github.com/whatwg/html/issues/897
 
 `document.$blockingElements` manages a stack of elements that inert the interaction outside them.
 
