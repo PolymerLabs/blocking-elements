@@ -1,20 +1,5 @@
 language: node_js
-sudo: required
-before_script:
-- npm install -g bower polymer-cli
-- polymer install
 node_js: '6'
-addons:
-  firefox: latest
-  apt:
-    sources:
-    - google-chrome
-    packages:
-    - google-chrome-stable
-script:
-- xvfb-run polymer test
-- if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then polymer test -s 'windows 10/microsoftedge@14' -s 'os x 10.11/safari@9' -s 'macos 10.12/safari@10'; fi
-dist: trusty
 env:
   global:
   - secure: VpPRx1TJb2Kw3+Em4ViH3H2CRHwM+mzliygcWc+kH0k9+iYnKfTOfI+ZsrzE5joCy7qZPAQgNKduvZ9/oDAZrGx/byhFcu5a+/I4sJPQP7kHXVtGK5+WN3Db8uKGkTc5J2539qAhYLmER+gRhazz2c7QQL6zS4cfkYArprEXANJk6neW+kyRN0TYl0YZVp2vW6ZqRxgCv7UDma2u/DIq37Z2T+CzAOYOoZccIWMN4qeEucZZDLf15c+MuTC2sq+BR9t4360Lj4Cp6WPOm5MWpo2pYFHTWOCEviVlzumQh4V9Xb5OXpASoZ7mTHiqXhgkmIWhk527A3GOo2VYPmOH7s/C3VbMabgJhmQVOIIg/IwRnIeTOLbPyOaQFmz2fA9s799noUV7PSCelBISacn0OtYfE6HcWWzICRv7ji6P/lTPOMBarxfqBQx3tgDoGEe019qxEoA3XT6T36MBntg7SKLNu/3Ankt0euC8x65v/zOLpnDfjbzBcgz8p4XCThpwNJNobo0ZMwljHqBqrsd2CDAWixCuVbKoUwuzn8PusG8HYZKCDOUsiRi42Ub0mcubJpqZTx3mcmgb/iAJAf/6s4iropqzpzeAM4sX/CwS/HaqdRa/KW/6jCBVLJApvGOJ862GXpUh7AKgIi0VW1zfMolBSyFEJNV4wFhGfFqsZ3M=
