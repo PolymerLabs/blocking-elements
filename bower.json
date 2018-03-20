@@ -12,10 +12,9 @@
     "polyfill",
     "browser"
   ],
-  "homepage": "https://github.com/PolymerLabs/blockingElements",
+  "homepage": "https://github.com/PolymerLabs/blocking-elements",
   "private": true,
   "devDependencies": {
-    "inert": "WICG/inert#^1",
     "web-component-tester": "Polymer/web-component-tester#^6",
     "webcomponentsjs": "webcomponents/webcomponentsjs#^1"
   },
