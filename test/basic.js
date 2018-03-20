@@ -201,6 +201,7 @@
           <button>button</button>
           <button>button</button>
         </div>`);
+      document.$blockingElements.push(container);
     });
 
     afterEach(function() {
@@ -208,14 +209,31 @@
       fixtureLoader.destroy();
     });
 
-    it('should inert newly added sibling', function(done) {
-      document.$blockingElements.push(container);
-      assert.equal(document.$blockingElements.top, container);
+    it('should inert new siblings', function(done) {
       var input = document.createElement('input');
       container.parentNode.appendChild(input);
       // Wait for mutation observer to see the change.
       setTimeout(function() {
-        assert.isTrue(inert.inert, 'inerted');
+        assert.isTrue(input.inert, 'inerted');
+        done();
+      });
+    });
+
+    it('should inert new parent siblings', function(done) {
+      var input = document.createElement('input');
+      container.parentNode.parentNode.appendChild(input);
+      // Wait for mutation observer to see the change.
+      setTimeout(function() {
+        assert.isTrue(input.inert, 'inerted');
+        done();
+      });
+    });
+
+    it('should remove top if it was removed', function(done) {
+      container.parentNode.removeChild(container);
+      // Wait for mutation observer to see the change.
+      setTimeout(function() {
+        assert.equal(document.$blockingElements.top, null);
         done();
       });
     });
