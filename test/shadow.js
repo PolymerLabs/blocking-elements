@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-(() => {
-  const assert = chai.assert;
-  const fixtureLoader = new Fixture();
+(function() {
+  var assert = chai.assert;
+  var fixtureLoader = new Fixture();
   /* eslint-disable require-jsdoc */
 
   function emptyBlockingElements() {
@@ -31,7 +31,7 @@
       return;
     }
 
-    let container;
+    var container;
 
     beforeEach(function() {
       return fixtureLoader.load(`
@@ -42,7 +42,7 @@
         </div>
         `).then((f) => {
         container = f;
-        const template = document.createElement('template');
+        var template = document.createElement('template');
         template.innerHTML = `<button>inner button</button><content></content>`;
         container.createShadowRoot().appendChild(template.content);
       });
@@ -54,7 +54,7 @@
     });
 
     it('update elements in shadow dom', function() {
-      const shadowBtn = container.shadowRoot.querySelector('button');
+      var shadowBtn = container.shadowRoot.querySelector('button');
 
       // Distributed element as a blocking element.
       document.$blockingElements.push(container.children[0]);
@@ -93,7 +93,7 @@
       return;
     }
 
-    let container;
+    var container;
 
     beforeEach(function() {
       return fixtureLoader.load(`
@@ -105,7 +105,7 @@
         `)
         .then((f) => {
           container = f;
-          const template = document.createElement('template');
+          var template = document.createElement('template');
           template.innerHTML = `<button>inner button</button><slot></slot>`;
           container.attachShadow({
             mode: 'open',
@@ -121,7 +121,7 @@
     });
 
     it('update elements in shadow dom', function() {
-      const shadowBtn = container.shadowRoot.querySelector('button');
+      var shadowBtn = container.shadowRoot.querySelector('button');
 
       // Distributed element as a blocking element.
       document.$blockingElements.push(container.children[0]);

@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-(() => {
-  const assert = chai.assert;
-  const fixtureLoader = new Fixture();
+(function() {
+  var assert = chai.assert;
+  var fixtureLoader = new Fixture();
   /* eslint-disable require-jsdoc */
 
   function emptyBlockingElements() {
@@ -26,7 +26,7 @@
   }
 
   describe('basic', function() {
-    let container;
+    var container;
 
     beforeEach(function() {
       return fixtureLoader.load(`
@@ -50,7 +50,7 @@
     });
 
     it('push() adds an element to the stack, remove() removes it', function() {
-      const child = container.children[0];
+      var child = container.children[0];
       assert.equal(document.$blockingElements.top, null);
       document.$blockingElements.push(child);
       assert.equal(document.$blockingElements.top, child);
@@ -59,19 +59,21 @@
       assert.equal(document.$blockingElements.top, null);
     });
 
-    it('push() can be used to make an already blocking element the top blocking element', function() {
-      assert.equal(document.$blockingElements.top, null);
-      document.$blockingElements.push(container.children[0]);
-      assert.equal(document.$blockingElements.top, container.children[0],
-        'child0 is top blocking element');
-      // Add another element.
-      document.$blockingElements.push(container.children[1]);
-      assert.equal(document.$blockingElements.top, container.children[1],
-        'child1 is top blocking element');
-      // Push again first element.
-      document.$blockingElements.push(container.children[0]);
-      assert.equal(document.$blockingElements.top, container.children[0], 'child0 brought to top');
-    });
+    it('push() can be used to make an already blocking element the top blocking element',
+      function() {
+        assert.equal(document.$blockingElements.top, null);
+        document.$blockingElements.push(container.children[0]);
+        assert.equal(document.$blockingElements.top, container.children[0],
+          'child0 is top blocking element');
+        // Add another element.
+        document.$blockingElements.push(container.children[1]);
+        assert.equal(document.$blockingElements.top, container.children[1],
+          'child1 is top blocking element');
+        // Push again first element.
+        document.$blockingElements.push(container.children[0]);
+        assert.equal(document.$blockingElements.top, container.children[0],
+          'child0 brought to top');
+      });
 
     it('push() adds only elements contained in document', function() {
       assert.equal(document.$blockingElements.top, null);
@@ -96,7 +98,7 @@
 
     it('preserve already inert elements', function() {
       assert.equal(document.$blockingElements.top, null);
-      const child = container.children[0];
+      var child = container.children[0];
       // Make children[1] inert
       container.children[1].inert = true;
       // Push and remove children[0], see if inert is preserved.
@@ -125,7 +127,7 @@
     });
 
     it('remove() handles elements not in the dom anymore', function() {
-      const child = container.children[0];
+      var child = container.children[0];
       document.$blockingElements.push(child);
       assert.equal(document.$blockingElements.top, child);
       container.removeChild(child);
@@ -133,7 +135,7 @@
       assert.equal(document.$blockingElements.top, null);
       assert.isNotOk(container.inert, 'container active');
       // Remaining children should be active.
-      for (let i = 0; i < container.children.length; i++) {
+      for (var i = 0; i < container.children.length; i++) {
         assert.isNotOk(container.children[i].inert, 'sibling active');
       }
     });
@@ -145,15 +147,15 @@
       document.$blockingElements = new document.$blockingElements.constructor();
       assert.isNotOk(container.inert, 'container active');
       // Remaining children should be active.
-      for (let i = 0; i < container.children.length; i++) {
+      for (var i = 0; i < container.children.length; i++) {
         assert.isNotOk(container.children[i].inert, 'sibling active');
       }
     });
   });
 
   describe('nested', function() {
-    let container;
-    let inner;
+    var container;
+    var inner;
 
     beforeEach(function() {
       return fixtureLoader.load(`
