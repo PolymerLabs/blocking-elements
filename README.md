@@ -4,6 +4,8 @@
 
 Implementation of proposal https://github.com/whatwg/html/issues/897
 
+> The polyfill chooses a non-colliding name (`document.$blockingElements` instead of `document.blockingElements`) as the proposal is still work in progress and hasn't yet reached consensus on the semantics and functionality (see [this discussion](https://github.com/PolymerLabs/blocking-elements/pull/1#issuecomment-235102344) for more details).
+
 `document.$blockingElements` manages a stack of elements that inert the interaction outside them.
 
 - the stack can be updated with the methods `push(elem), remove(elem), pop(elem)`
