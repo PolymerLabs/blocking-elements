@@ -46,6 +46,7 @@
     "testPath": "/test/",
     "port": "8080",
     "service": "sauce-connect",
+    "max-duration": 120,
     "platforms": [
       [
         "Windows 10",
