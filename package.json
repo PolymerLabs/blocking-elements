@@ -27,7 +27,7 @@
     "@webcomponents/webcomponentsjs": "^1.1.0",
     "babel-core": "^6.26.0",
     "babel-plugin-external-helpers": "^6.22.0",
-    "babel-polyfill": "^6.13.0",
+    "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "chai": "^4.0.2",
     "easy-sauce": "^0.4.1",
@@ -61,6 +61,16 @@
         "Windows 10",
         "microsoftedge",
         "14"
+      ],
+      [
+        "Windows 8.1",
+        "Internet Explorer",
+        "11"
+      ],
+      [
+        "OS X 10.11",
+        "safari",
+        "9"
       ],
       [
         "OS X 10.12",
