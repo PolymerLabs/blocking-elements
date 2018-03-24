@@ -8,7 +8,7 @@ Implementation of proposal https://github.com/whatwg/html/issues/897
 
 `document.$blockingElements` manages a stack of elements that inert the interaction outside them.
 
-- the stack can be updated with the methods `push(elem), remove(elem), pop(elem)`
+- the stack can be updated with the methods `push(elem), remove(elem), pop()`
 - the top element (`document.$blockingElements.top`) and its subtree is the interactive part of the document
 - `has(elem)` returns if the element is a blocking element
 
@@ -73,7 +73,7 @@ Let's compare the how long it takes to toggle the deepest `x-trap-focus` inside 
 
 ![results](https://cloud.githubusercontent.com/assets/6173664/17538133/914f365a-5e57-11e6-9b91-1c6b7eb22d57.png).
 
-`blockingElements` with native inert is **~15x faster** than polyfilled inert 🎉 🎉 🎉
+`document.$blockingElements` with native inert is **~15x faster** than polyfilled inert 🎉 🎉 🎉
 
 | with polyfilled inert (M58) | with native inert (M60) |
 |----------|--------|
