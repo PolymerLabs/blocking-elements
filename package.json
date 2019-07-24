@@ -21,6 +21,7 @@
   "scripts": {
     "lint": "eslint blocking-elements.js",
     "test": "npm run lint && npm run build && easy-sauce",
+    "format": "clang-format --style=file -i *.ts",
     "build": "rollem"
   },
   "devDependencies": {
@@ -30,6 +31,7 @@
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "chai": "^4.0.2",
+    "clang-format": "^1.2.4",
     "easy-sauce": "^0.4.1",
     "eslint": "^4.0.0",
     "eslint-config-google": "^0.9.1",
