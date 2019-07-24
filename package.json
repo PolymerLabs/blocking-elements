@@ -4,7 +4,7 @@
   "description": "A polyfill for the proposed blocking elments stack API",
   "main": "dist/blocking-elements.js",
   "author": "Valdrin Koshi <valdrin@google.com>",
-  "license": "BSD-3-Clause",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/PolymerLabs/blockingElements.git"
@@ -15,9 +15,9 @@
     "browser"
   ],
   "bugs": {
-    "url": "https://github.com/PolymerLabs/blockingElements/issues"
+    "url": "https://github.com/PolymerLabs/blocking-elements/issues"
   },
-  "homepage": "https://github.com/PolymerLabs/blockingElements#readme",
+  "homepage": "https://github.com/PolymerLabs/blocking-elements#readme",
   "scripts": {
     "lint": "eslint blocking-elements.js",
     "test": "npm run lint && npm run build && easy-sauce",
