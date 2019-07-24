@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-(function(document) {
+(function() {
 /* Symbols for private properties */
 const _blockingElements = Symbol();
 const _alreadyInertElements = Symbol();
@@ -33,6 +33,16 @@ const _getDistributedChildren = Symbol();
 const _isInertable = Symbol();
 const _handleMutations = Symbol();
 
+interface DocumentWithBlockingElements extends Document {
+  $blockingElements: BlockingElements;
+}
+
+interface IntertableHTMLElement extends HTMLElement {
+  inert?: boolean;
+  [_siblingsToRestore]?: Set<IntertableHTMLElement>;
+  [_parentMO]?: MutationObserver;
+}
+
 /**
  * `BlockingElements` manages a stack of elements that inert the interaction
  * outside them. The top element is the interactive part of the document.
@@ -40,34 +50,23 @@ const _handleMutations = Symbol();
  */
 class BlockingElements {
   /**
-   * New BlockingElements instance.
+   * The blocking elements.
    */
-  constructor() {
-    /**
-     * The blocking elements.
-     * @type {Array<HTMLElement>}
-     * @private
-     */
-    this[_blockingElements] = [];
+  private[_blockingElements]: IntertableHTMLElement[] = [];
 
-    /**
-     * Used to keep track of the parents of the top element, from the element
-     * itself up to body. When top changes, the old top might have been removed
-     * from the document, so we need to memoize the inerted parents' siblings
-     * in order to restore their inerteness when top changes.
-     * @type {Array<HTMLElement>}
-     * @private
-     */
-    this[_topElParents] = [];
+  /**
+   * Used to keep track of the parents of the top element, from the element
+   * itself up to body. When top changes, the old top might have been removed
+   * from the document, so we need to memoize the inerted parents' siblings
+   * in order to restore their inerteness when top changes.
+   */
+  private[_topElParents]: IntertableHTMLElement[] = [];
 
-    /**
-     * Elements that are already inert before the first blocking element is
-     * pushed.
-     * @type {Set<HTMLElement>}
-     * @private
-     */
-    this[_alreadyInertElements] = new Set();
-  }
+  /**
+   * Elements that are already inert before the first blocking element is
+   * pushed.
+   */
+  private[_alreadyInertElements] = new Set<IntertableHTMLElement>();
 
   /**
    * Call this whenever this object is about to become obsolete. This empties
@@ -76,25 +75,28 @@ class BlockingElements {
   destructor() {
     // Restore original inertness.
     this[_restoreInertedSiblings](this[_topElParents]);
-    this[_blockingElements] = null;
-    this[_topElParents] = null;
-    this[_alreadyInertElements] = null;
+    const nullable = this as unknown as {
+      [_blockingElements]: null;
+      [_topElParents]: null;
+      [_alreadyInertElements]: null;
+    };
+    nullable[_blockingElements] = null;
+    nullable[_topElParents] = null;
+    nullable[_alreadyInertElements] = null;
   }
 
   /**
    * The top blocking element.
-   * @type {HTMLElement|null}
    */
-  get top() {
+  get top(): HTMLElement|null {
     const elems = this[_blockingElements];
     return elems[elems.length - 1] || null;
   }
 
   /**
    * Adds the element to the blocking elements.
-   * @param {!HTMLElement} element
    */
-  push(element) {
+  push(element: HTMLElement): HTMLElement|undefined {
     if (!element || element === this.top) {
       return;
     }
@@ -107,10 +109,8 @@ class BlockingElements {
   /**
    * Removes the element from the blocking elements. Returns true if the element
    * was removed.
-   * @param {!HTMLElement} element
-   * @return {boolean}
    */
-  remove(element) {
+  remove(element: HTMLElement): boolean {
     const i = this[_blockingElements].indexOf(element);
     if (i === -1) {
       return false;
@@ -118,16 +118,18 @@ class BlockingElements {
     this[_blockingElements].splice(i, 1);
     // Top changed only if the removed element was the top element.
     if (i === this[_blockingElements].length) {
-      this[_topChanged](this.top);
+      const top = this.top;
+      if (top !== null) {
+        this[_topChanged](top);
+      }
     }
     return true;
   }
 
   /**
    * Remove the top blocking element and returns it.
-   * @return {HTMLElement|null} the removed element.
    */
-  pop() {
+  pop(): HTMLElement|null {
     const top = this.top;
     top && this.remove(top);
     return top;
@@ -135,21 +137,16 @@ class BlockingElements {
 
   /**
    * Returns if the element is a blocking element.
-   * @param {!HTMLElement} element
-   * @return {boolean}
    */
-  has(element) {
+  has(element: HTMLElement): boolean {
     return this[_blockingElements].indexOf(element) !== -1;
   }
 
   /**
    * Sets `inert` to all document elements except the new top element, its
    * parents, and its distributed content.
-   * @param {?HTMLElement} newTop If null, it means the last blocking element
-   *     was removed.
-   * @private
    */
-  [_topChanged](newTop) {
+  private[_topChanged](newTop: HTMLElement|null): void {
     const toKeepInert = this[_alreadyInertElements];
     const oldParents = this[_topElParents];
     // No new top, reset old top if any.
@@ -190,7 +187,7 @@ class BlockingElements {
     // Restore old parents siblings inertness.
     i > 0 && this[_restoreInertedSiblings](oldParents.slice(0, i));
     // Make new parents siblings inert.
-    j > 0 && this[_inertSiblings](newParents.slice(0, j), toSkip);
+    j > 0 && this[_inertSiblings](newParents.slice(0, j), toSkip, null);
   }
 
   /**
@@ -198,28 +195,28 @@ class BlockingElements {
    * Sets the property `inert` over the attribute since the inert spec
    * doesn't specify if it should be reflected.
    * https://html.spec.whatwg.org/multipage/interaction.html#inert
-   * @param {!HTMLElement} oldInert
-   * @param {!HTMLElement} newInert
-   * @private
    */
-  [_swapInertedSibling](oldInert, newInert) {
+  private[_swapInertedSibling](
+      oldInert: IntertableHTMLElement, newInert: IntertableHTMLElement): void {
     const siblingsToRestore = oldInert[_siblingsToRestore];
     // oldInert is not contained in siblings to restore, so we have to check
     // if it's inertable and if already inert.
     if (this[_isInertable](oldInert) && !oldInert.inert) {
       oldInert.inert = true;
-      siblingsToRestore.add(oldInert);
+      if (siblingsToRestore) {
+        siblingsToRestore.add(oldInert);
+      }
     }
     // If newInert was already between the siblings to restore, it means it is
     // inertable and must be restored.
-    if (siblingsToRestore.has(newInert)) {
+    if (siblingsToRestore && siblingsToRestore.has(newInert)) {
       newInert.inert = false;
       siblingsToRestore.delete(newInert);
     }
     newInert[_parentMO] = oldInert[_parentMO];
-    oldInert[_parentMO] = null;
+    oldInert[_parentMO] = undefined;
     newInert[_siblingsToRestore] = siblingsToRestore;
-    oldInert[_siblingsToRestore] = null;
+    oldInert[_siblingsToRestore] = undefined;
   }
 
   /**
@@ -227,17 +224,21 @@ class BlockingElements {
    * Sets the property `inert` over the attribute since the inert spec
    * doesn't specify if it should be reflected.
    * https://html.spec.whatwg.org/multipage/interaction.html#inert
-   * @param {!Array<HTMLElement>} elements
-   * @private
    */
-  [_restoreInertedSiblings](elements) {
+  private[_restoreInertedSiblings](elements: IntertableHTMLElement[]) {
     elements.forEach((el) => {
-      el[_parentMO].disconnect();
-      el[_parentMO] = null;
-      for (let sibling of el[_siblingsToRestore]) {
-        sibling.inert = false;
+      const mo = el[_parentMO];
+      if (mo !== undefined) {
+        mo.disconnect();
       }
-      el[_siblingsToRestore] = null;
+      el[_parentMO] = undefined;
+      const siblings = el[_siblingsToRestore];
+      if (siblings !== undefined) {
+        for (const sibling of siblings) {
+          sibling.inert = false;
+        }
+      }
+      el[_siblingsToRestore] = undefined;
     });
   }
 
@@ -248,18 +249,16 @@ class BlockingElements {
    * Sets the property `inert` over the attribute since the inert spec
    * doesn't specify if it should be reflected.
    * https://html.spec.whatwg.org/multipage/interaction.html#inert
-   * @param {!Array<HTMLElement>} elements
-   * @param {Set<HTMLElement>} toSkip
-   * @param {Set<HTMLElement>} toKeepInert
-   * @private
    */
-  [_inertSiblings](elements, toSkip, toKeepInert) {
-    for (let i = 0, l = elements.length; i < l; i++) {
-      const element = elements[i];
-      const children = element.parentNode.children;
-      const inertedSiblings = new Set();
+  private[_inertSiblings](
+      elements: IntertableHTMLElement[], toSkip: Set<HTMLElement>|null,
+      toKeepInert: Set<HTMLElement>|null) {
+    for (const element of elements) {
+      const children =
+          element.parentNode !== null ? element.parentNode.children : [];
+      const inertedSiblings = new Set<HTMLElement>();
       for (let j = 0; j < children.length; j++) {
-        const sibling = children[j];
+        const sibling = children[j] as IntertableHTMLElement;
         // Skip the input element, if not inertable or to be skipped.
         if (sibling === element || !this[_isInertable](sibling) ||
             (toSkip && toSkip.has(sibling))) {
@@ -278,9 +277,12 @@ class BlockingElements {
       // Observe only immediate children mutations on the parent.
       element[_parentMO] =
           new MutationObserver(this[_handleMutations].bind(this));
-      element[_parentMO].observe(element.parentNode, {
-        childList: true,
-      });
+      const mo = element[_parentMO];
+      if (element.parentNode !== null && mo !== undefined) {
+        mo.observe(element.parentNode, {
+          childList: true,
+        });
+      }
     }
   }
 
@@ -288,34 +290,34 @@ class BlockingElements {
    * Handles newly added/removed nodes by toggling their inertness.
    * It also checks if the current top Blocking Element has been removed,
    * notifying and removing it.
-   * @param {Array<MutationRecord>} mutations
-   * @private
    */
-  [_handleMutations](mutations) {
+  private[_handleMutations](mutations: MutationRecord[]): void {
     const parents = this[_topElParents];
     const toKeepInert = this[_alreadyInertElements];
     for (const mutation of mutations) {
       const idx = mutation.target === document.body ?
           parents.length :
-          parents.indexOf(mutation.target);
+          parents.indexOf(mutation.target as IntertableHTMLElement);
       const inertedChild = parents[idx - 1];
       const inertedSiblings = inertedChild[_siblingsToRestore];
 
       // To restore.
-      for (const sibling of mutation.removedNodes) {
+      for (let i = 0; i < mutation.removedNodes.length; i++) {
+        const sibling = mutation.removedNodes[i] as IntertableHTMLElement;
         if (sibling === inertedChild) {
           console.info('Detected removal of the top Blocking Element.');
           this.pop();
           return;
         }
-        if (inertedSiblings.has(sibling)) {
+        if (inertedSiblings && inertedSiblings.has(sibling)) {
           sibling.inert = false;
           inertedSiblings.delete(sibling);
         }
       }
 
       // To inert.
-      for (const sibling of mutation.addedNodes) {
+      for (let i = 0; i < mutation.addedNodes.length; i++) {
+        const sibling = mutation.removedNodes[i] as IntertableHTMLElement;
         if (!this[_isInertable](sibling)) {
           continue;
         }
@@ -323,7 +325,9 @@ class BlockingElements {
           toKeepInert.add(sibling);
         } else {
           sibling.inert = true;
-          inertedSiblings.add(sibling);
+          if (inertedSiblings) {
+            inertedSiblings.add(sibling);
+          }
         }
       }
     }
@@ -331,24 +335,18 @@ class BlockingElements {
 
   /**
    * Returns if the element is inertable.
-   * @param {!HTMLElement} element
-   * @return {boolean}
-   * @private
    */
-  [_isInertable](element) {
+  private[_isInertable](element: HTMLElement): boolean {
     return false === /^(style|template|script)$/.test(element.localName);
   }
 
   /**
    * Returns the list of newParents of an element, starting from element
    * (included) up to `document.body` (excluded).
-   * @param {HTMLElement} element
-   * @return {Array<HTMLElement>}
-   * @private
    */
-  [_getParents](element) {
+  private[_getParents](element: HTMLElement): Array<HTMLElement> {
     const parents = [];
-    let current = element;
+    let current: HTMLElement|null|undefined = element;
     // Stop to body.
     while (current && current !== document.body) {
       // Skip shadow roots.
@@ -356,28 +354,17 @@ class BlockingElements {
         parents.push(current);
       }
       // ShadowDom v1
-      if (current.assignedSlot) {
+      if ((current as HTMLElement).assignedSlot) {
         // Collect slots from deepest slot to top.
-        while ((current = current.assignedSlot)) {
+        while ((current = (current as HTMLElement).assignedSlot)) {
           parents.push(current);
         }
         // Continue the search on the top slot.
         current = parents.pop();
         continue;
       }
-      // ShadowDom v0
-      const insertionPoints = current.getDestinationInsertionPoints ?
-          current.getDestinationInsertionPoints() :
-          [];
-      if (insertionPoints.length) {
-        for (let i = 0; i < insertionPoints.length; i++) {
-          parents.push(insertionPoints[i]);
-        }
-        // Continue the search on the top content.
-        current = parents.pop();
-        continue;
-      }
-      current = current.parentNode || current.host;
+      current = current.parentNode as HTMLElement ||
+          (current as Node as ShadowRoot).host;
     }
     return parents;
   }
@@ -385,20 +372,17 @@ class BlockingElements {
   /**
    * Returns the distributed children of the element's shadow root.
    * Returns null if the element doesn't have a shadow root.
-   * @param {!element} element
-   * @return {Set<HTMLElement>|null}
-   * @private
    */
-  [_getDistributedChildren](element) {
+  private[_getDistributedChildren](element: HTMLElement):
+      Set<HTMLElement>|null {
     const shadowRoot = element.shadowRoot;
     if (!shadowRoot) {
       return null;
     }
-    const result = new Set();
+    const result = new Set<HTMLElement>();
     let i;
     let j;
     let nodes;
-    // ShadowDom v1
     const slots = shadowRoot.querySelectorAll('slot');
     if (slots.length && slots[0].assignedNodes) {
       for (i = 0; i < slots.length; i++) {
@@ -407,28 +391,16 @@ class BlockingElements {
         });
         for (j = 0; j < nodes.length; j++) {
           if (nodes[j].nodeType === Node.ELEMENT_NODE) {
-            result.add(nodes[j]);
+            result.add(nodes[j] as HTMLElement);
           }
         }
       }
       // No need to search for <content>.
-      return result;
-    }
-    // ShadowDom v0
-    const contents = shadowRoot.querySelectorAll('content');
-    if (contents.length && contents[0].getDistributedNodes) {
-      for (i = 0; i < contents.length; i++) {
-        nodes = contents[i].getDistributedNodes();
-        for (j = 0; j < nodes.length; j++) {
-          if (nodes[j].nodeType === Node.ELEMENT_NODE) {
-            result.add(nodes[j]);
-          }
-        }
-      }
     }
     return result;
   }
 }
 
-document.$blockingElements = new BlockingElements();
-})(document);
+(document as DocumentWithBlockingElements).$blockingElements =
+    new BlockingElements();
+})();
