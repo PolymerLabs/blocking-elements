@@ -356,9 +356,9 @@ class BlockingElements {
         parents.push(current);
       }
       // ShadowDom v1
-      if ((current as HTMLElement).assignedSlot) {
+      if (current.assignedSlot) {
         // Collect slots from deepest slot to top.
-        while ((current = (current as HTMLElement).assignedSlot)) {
+        while ((current = current.assignedSlot)) {
           parents.push(current);
         }
         // Continue the search on the top slot.
