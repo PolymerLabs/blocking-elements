@@ -7,7 +7,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PolymerLabs/blockingElements.git"
+    "url": "git+https://github.com/PolymerLabs/blocking-elements.git"
   },
   "keywords": [
     "blocking-elements",
@@ -22,7 +22,8 @@
     "lint": "eslint blocking-elements.js",
     "test": "npm run lint && npm run build && easy-sauce",
     "format": "clang-format --style=file -i *.ts",
-    "build": "rm -rf lib/ && tsc && rollem"
+    "prepack": "npm run build",
+    "build": "rm -rf dist/ && tsc && rollem"
   },
   "devDependencies": {
     "@webcomponents/webcomponentsjs": "^1.1.0",
