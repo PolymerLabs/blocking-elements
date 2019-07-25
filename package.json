@@ -2,7 +2,7 @@
   "name": "blocking-elements",
   "version": "0.0.2",
   "description": "A polyfill for the proposed blocking elments stack API",
-  "main": "dist/blocking-elements.js",
+  "main": "blocking-elements.js",
   "author": "Valdrin Koshi <valdrin@google.com>",
   "license": "Apache-2.0",
   "repository": {
@@ -22,7 +22,7 @@
     "lint": "eslint blocking-elements.js",
     "test": "npm run lint && npm run build && easy-sauce",
     "format": "clang-format --style=file -i *.ts",
-    "build": "rollem"
+    "build": "rm -rf lib/ && tsc && rollem"
   },
   "devDependencies": {
     "@webcomponents/webcomponentsjs": "^1.1.0",

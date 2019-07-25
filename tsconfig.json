@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "es2017",
     "module": "es2015",
+    "outDir": "./dist",
 
     "strict": true,
     "noUnusedLocals": true,
