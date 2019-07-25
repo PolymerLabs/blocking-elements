@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-(function() {
 /* Symbols for private properties */
 const _blockingElements = Symbol();
 const _alreadyInertElements = Symbol();
@@ -33,7 +32,10 @@ const _getDistributedChildren = Symbol();
 const _isInertable = Symbol();
 const _handleMutations = Symbol();
 
-interface DocumentWithBlockingElements extends Document {
+/**
+ * Standard Document interface with the Blocking Elements polyfill.
+ */
+export interface DocumentWithBlockingElements extends Document {
   $blockingElements: BlockingElements;
 }
 
@@ -403,4 +405,3 @@ class BlockingElements {
 
 (document as DocumentWithBlockingElements).$blockingElements =
     new BlockingElements();
-})();
