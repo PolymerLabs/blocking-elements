@@ -32,11 +32,16 @@ const _getDistributedChildren = Symbol();
 const _isInertable = Symbol();
 const _handleMutations = Symbol();
 
-interface InertableHTMLElement extends HTMLElement {
+interface Inertable extends HTMLElement {
   inert?: boolean;
-  [_siblingsToRestore]?: Set<InertableHTMLElement>;
-  [_parentMO]?: MutationObserver;
 }
+
+interface InternalState {
+  [_siblingsToRestore]: Set<MaybeHasInternalState>;
+  [_parentMO]: MutationObserver;
+}
+interface HasInternalState extends Inertable, InternalState {}
+interface MaybeHasInternalState extends Inertable, Partial<InternalState> {}
 
 /**
  * `BlockingElements` manages a stack of elements that inert the interaction
@@ -47,7 +52,7 @@ class BlockingElements {
   /**
    * The blocking elements.
    */
-  private[_blockingElements]: InertableHTMLElement[] = [];
+  private[_blockingElements]: MaybeHasInternalState[] = [];
 
   /**
    * Used to keep track of the parents of the top element, from the element
@@ -55,13 +60,13 @@ class BlockingElements {
    * from the document, so we need to memoize the inerted parents' siblings
    * in order to restore their inerteness when top changes.
    */
-  private[_topElParents]: InertableHTMLElement[] = [];
+  private[_topElParents]: HasInternalState[] = [];
 
   /**
    * Elements that are already inert before the first blocking element is
    * pushed.
    */
-  private[_alreadyInertElements] = new Set<InertableHTMLElement>();
+  private[_alreadyInertElements] = new Set<MaybeHasInternalState>();
 
   /**
    * Call this whenever this object is about to become obsolete. This empties
@@ -145,7 +150,7 @@ class BlockingElements {
    * Sets `inert` to all document elements except the new top element, its
    * parents, and its distributed content.
    */
-  private[_topChanged](newTop: HTMLElement|null): void {
+  private[_topChanged](newTop: MaybeHasInternalState|null): void {
     const toKeepInert = this[_alreadyInertElements];
     const oldParents = this[_topElParents];
     // No new top, reset old top if any.
@@ -161,7 +166,8 @@ class BlockingElements {
     if (newParents[newParents.length - 1].parentNode !== document.body) {
       throw Error('Non-connected element cannot be a blocking element');
     }
-    this[_topElParents] = newParents;
+    // Cast here because we know we'll call _inertSiblings on newParents below.
+    this[_topElParents] = newParents as Array<HasInternalState>;
 
     const toSkip = this[_getDistributedChildren](newTop);
 
@@ -196,26 +202,24 @@ class BlockingElements {
    * https://html.spec.whatwg.org/multipage/interaction.html#inert
    */
   private[_swapInertedSibling](
-      oldInert: InertableHTMLElement, newInert: InertableHTMLElement): void {
+      oldInert: HasInternalState, newInert: MaybeHasInternalState): void {
     const siblingsToRestore = oldInert[_siblingsToRestore];
     // oldInert is not contained in siblings to restore, so we have to check
     // if it's inertable and if already inert.
     if (this[_isInertable](oldInert) && !oldInert.inert) {
       oldInert.inert = true;
-      if (siblingsToRestore) {
-        siblingsToRestore.add(oldInert);
-      }
+      siblingsToRestore.add(oldInert);
     }
     // If newInert was already between the siblings to restore, it means it is
     // inertable and must be restored.
-    if (siblingsToRestore && siblingsToRestore.has(newInert)) {
+    if (siblingsToRestore.has(newInert)) {
       newInert.inert = false;
       siblingsToRestore.delete(newInert);
     }
     newInert[_parentMO] = oldInert[_parentMO];
-    oldInert[_parentMO] = undefined;
     newInert[_siblingsToRestore] = siblingsToRestore;
-    oldInert[_siblingsToRestore] = undefined;
+    (oldInert as MaybeHasInternalState)[_parentMO] = undefined;
+    (oldInert as MaybeHasInternalState)[_siblingsToRestore] = undefined;
   }
 
   /**
@@ -224,21 +228,19 @@ class BlockingElements {
    * doesn't specify if it should be reflected.
    * https://html.spec.whatwg.org/multipage/interaction.html#inert
    */
-  private[_restoreInertedSiblings](elements: InertableHTMLElement[]) {
-    elements.forEach((el) => {
-      const mo = el[_parentMO];
-      if (mo !== undefined) {
-        mo.disconnect();
-      }
-      el[_parentMO] = undefined;
-      const siblings = el[_siblingsToRestore];
+  private[_restoreInertedSiblings](elements: HasInternalState[]) {
+    for (const element of elements) {
+      const mo = element[_parentMO];
+      mo.disconnect();
+      (element as MaybeHasInternalState)[_parentMO] = undefined;
+      const siblings = element[_siblingsToRestore];
       if (siblings !== undefined) {
         for (const sibling of siblings) {
           sibling.inert = false;
         }
       }
-      el[_siblingsToRestore] = undefined;
-    });
+      (element as MaybeHasInternalState)[_siblingsToRestore] = undefined;
+    }
   }
 
   /**
@@ -250,14 +252,14 @@ class BlockingElements {
    * https://html.spec.whatwg.org/multipage/interaction.html#inert
    */
   private[_inertSiblings](
-      elements: InertableHTMLElement[], toSkip: Set<HTMLElement>|null,
+      elements: MaybeHasInternalState[], toSkip: Set<HTMLElement>|null,
       toKeepInert: Set<HTMLElement>|null) {
     for (const element of elements) {
-      const children =
-          element.parentNode !== null ? element.parentNode.children : [];
+      // Assume element is not a Document, so it must have a parentNode.
+      const children = element.parentNode!.children;
       const inertedSiblings = new Set<HTMLElement>();
       for (let j = 0; j < children.length; j++) {
-        const sibling = children[j] as InertableHTMLElement;
+        const sibling = children[j] as MaybeHasInternalState;
         // Skip the input element, if not inertable or to be skipped.
         if (sibling === element || !this[_isInertable](sibling) ||
             (toSkip && toSkip.has(sibling))) {
@@ -276,11 +278,10 @@ class BlockingElements {
       // Observe only immediate children mutations on the parent.
       const mo = new MutationObserver(this[_handleMutations].bind(this));
       element[_parentMO] = mo;
-      if (element.parentNode !== null) {
-        mo.observe(element.parentNode, {
-          childList: true,
-        });
-      }
+      // Assume element is not a Document, so it must have a parentNode.
+      mo.observe(element.parentNode!, {
+        childList: true,
+      });
     }
   }
 
@@ -295,19 +296,19 @@ class BlockingElements {
     for (const mutation of mutations) {
       const idx = mutation.target === document.body ?
           parents.length :
-          parents.indexOf(mutation.target as InertableHTMLElement);
+          parents.indexOf(mutation.target as HasInternalState);
       const inertedChild = parents[idx - 1];
       const inertedSiblings = inertedChild[_siblingsToRestore];
 
       // To restore.
       for (let i = 0; i < mutation.removedNodes.length; i++) {
-        const sibling = mutation.removedNodes[i] as InertableHTMLElement;
+        const sibling = mutation.removedNodes[i] as MaybeHasInternalState;
         if (sibling === inertedChild) {
           console.info('Detected removal of the top Blocking Element.');
           this.pop();
           return;
         }
-        if (inertedSiblings && inertedSiblings.has(sibling)) {
+        if (inertedSiblings.has(sibling)) {
           sibling.inert = false;
           inertedSiblings.delete(sibling);
         }
@@ -315,7 +316,7 @@ class BlockingElements {
 
       // To inert.
       for (let i = 0; i < mutation.addedNodes.length; i++) {
-        const sibling = mutation.removedNodes[i] as InertableHTMLElement;
+        const sibling = mutation.removedNodes[i] as MaybeHasInternalState;
         if (!this[_isInertable](sibling)) {
           continue;
         }
@@ -323,9 +324,7 @@ class BlockingElements {
           toKeepInert.add(sibling);
         } else {
           sibling.inert = true;
-          if (inertedSiblings) {
-            inertedSiblings.add(sibling);
-          }
+          inertedSiblings.add(sibling);
         }
       }
     }
@@ -354,7 +353,7 @@ class BlockingElements {
       // ShadowDom v1
       if (current.assignedSlot) {
         // Collect slots from deepest slot to top.
-        while ((current = current.assignedSlot)) {
+        while (current = current.assignedSlot) {
           parents.push(current);
         }
         // Continue the search on the top slot.
