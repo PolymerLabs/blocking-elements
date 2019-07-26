@@ -147,10 +147,7 @@ export interface DocumentWithBlockingElements extends Document {
       this[_blockingElements].splice(i, 1);
       // Top changed only if the removed element was the top element.
       if (i === this[_blockingElements].length) {
-        const top = this.top;
-        if (top !== null) {
-          this[_topChanged](top);
-        }
+        this[_topChanged](this.top);
       }
       return true;
     }
@@ -254,10 +251,8 @@ export interface DocumentWithBlockingElements extends Document {
         mo.disconnect();
         (element as MaybeHasInternalState)[_parentMO] = undefined;
         const siblings = element[_siblingsToRestore];
-        if (siblings !== undefined) {
-          for (const sibling of siblings) {
-            sibling.inert = false;
-          }
+        for (const sibling of siblings) {
+          sibling.inert = false;
         }
         (element as MaybeHasInternalState)[_siblingsToRestore] = undefined;
       }
