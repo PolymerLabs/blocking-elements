@@ -331,7 +331,7 @@ export interface DocumentWithBlockingElements extends Document {
 
         // To inert.
         for (let i = 0; i < mutation.addedNodes.length; i++) {
-          const sibling = mutation.removedNodes[i] as MaybeHasInternalState;
+          const sibling = mutation.addedNodes[i] as MaybeHasInternalState;
           if (!this[_isInertable](sibling)) {
             continue;
           }
