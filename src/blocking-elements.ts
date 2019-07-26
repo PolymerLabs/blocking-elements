@@ -274,10 +274,9 @@ class BlockingElements {
       // Store the siblings that were inerted.
       element[_siblingsToRestore] = inertedSiblings;
       // Observe only immediate children mutations on the parent.
-      element[_parentMO] =
-          new MutationObserver(this[_handleMutations].bind(this));
-      const mo = element[_parentMO];
-      if (element.parentNode !== null && mo !== undefined) {
+      const mo = new MutationObserver(this[_handleMutations].bind(this));
+      element[_parentMO] = mo;
+      if (element.parentNode !== null) {
         mo.observe(element.parentNode, {
           childList: true,
         });
