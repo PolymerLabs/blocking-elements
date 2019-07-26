@@ -4,7 +4,7 @@ import resolve from 'rollup-plugin-node-resolve';
 import {uglify} from 'rollup-plugin-uglify';
 
 export default [{
-  input: 'dist/document-global.js',
+  input: 'dist/blocking-elements.js',
   output: {
     file: 'dist/blocking-elements.min.js',
     format: 'iife',
