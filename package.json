@@ -23,7 +23,7 @@
     "test": "npm run lint && npm run build && easy-sauce",
     "format": "clang-format --style=file -i *.ts",
     "prepack": "npm run build",
-    "build": "rm -rf dist/ && tsc && rollup -c"
+    "build": "rm dist/* && tsc && rollup -c && rm dist/document-global.*"
   },
   "devDependencies": {
     "@babel/core": "^7.5.5",

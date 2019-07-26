@@ -32,13 +32,6 @@ const _getDistributedChildren = Symbol();
 const _isInertable = Symbol();
 const _handleMutations = Symbol();
 
-/**
- * Standard Document interface with the Blocking Elements polyfill.
- */
-export interface DocumentWithBlockingElements extends Document {
-  $blockingElements: BlockingElements;
-}
-
 interface IntertableHTMLElement extends HTMLElement {
   inert?: boolean;
   [_siblingsToRestore]?: Set<IntertableHTMLElement>;
@@ -407,5 +400,7 @@ class BlockingElements {
   }
 }
 
-(document as DocumentWithBlockingElements).$blockingElements =
-    new BlockingElements();
+/**
+ * Singleton instance of BlockingElements.
+ */
+export const blockingElements = new BlockingElements();
