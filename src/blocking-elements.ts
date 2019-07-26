@@ -32,9 +32,9 @@ const _getDistributedChildren = Symbol();
 const _isInertable = Symbol();
 const _handleMutations = Symbol();
 
-interface IntertableHTMLElement extends HTMLElement {
+interface InertableHTMLElement extends HTMLElement {
   inert?: boolean;
-  [_siblingsToRestore]?: Set<IntertableHTMLElement>;
+  [_siblingsToRestore]?: Set<InertableHTMLElement>;
   [_parentMO]?: MutationObserver;
 }
 
@@ -47,7 +47,7 @@ class BlockingElements {
   /**
    * The blocking elements.
    */
-  private[_blockingElements]: IntertableHTMLElement[] = [];
+  private[_blockingElements]: InertableHTMLElement[] = [];
 
   /**
    * Used to keep track of the parents of the top element, from the element
@@ -55,13 +55,13 @@ class BlockingElements {
    * from the document, so we need to memoize the inerted parents' siblings
    * in order to restore their inerteness when top changes.
    */
-  private[_topElParents]: IntertableHTMLElement[] = [];
+  private[_topElParents]: InertableHTMLElement[] = [];
 
   /**
    * Elements that are already inert before the first blocking element is
    * pushed.
    */
-  private[_alreadyInertElements] = new Set<IntertableHTMLElement>();
+  private[_alreadyInertElements] = new Set<InertableHTMLElement>();
 
   /**
    * Call this whenever this object is about to become obsolete. This empties
@@ -196,7 +196,7 @@ class BlockingElements {
    * https://html.spec.whatwg.org/multipage/interaction.html#inert
    */
   private[_swapInertedSibling](
-      oldInert: IntertableHTMLElement, newInert: IntertableHTMLElement): void {
+      oldInert: InertableHTMLElement, newInert: InertableHTMLElement): void {
     const siblingsToRestore = oldInert[_siblingsToRestore];
     // oldInert is not contained in siblings to restore, so we have to check
     // if it's inertable and if already inert.
@@ -224,7 +224,7 @@ class BlockingElements {
    * doesn't specify if it should be reflected.
    * https://html.spec.whatwg.org/multipage/interaction.html#inert
    */
-  private[_restoreInertedSiblings](elements: IntertableHTMLElement[]) {
+  private[_restoreInertedSiblings](elements: InertableHTMLElement[]) {
     elements.forEach((el) => {
       const mo = el[_parentMO];
       if (mo !== undefined) {
@@ -250,14 +250,14 @@ class BlockingElements {
    * https://html.spec.whatwg.org/multipage/interaction.html#inert
    */
   private[_inertSiblings](
-      elements: IntertableHTMLElement[], toSkip: Set<HTMLElement>|null,
+      elements: InertableHTMLElement[], toSkip: Set<HTMLElement>|null,
       toKeepInert: Set<HTMLElement>|null) {
     for (const element of elements) {
       const children =
           element.parentNode !== null ? element.parentNode.children : [];
       const inertedSiblings = new Set<HTMLElement>();
       for (let j = 0; j < children.length; j++) {
-        const sibling = children[j] as IntertableHTMLElement;
+        const sibling = children[j] as InertableHTMLElement;
         // Skip the input element, if not inertable or to be skipped.
         if (sibling === element || !this[_isInertable](sibling) ||
             (toSkip && toSkip.has(sibling))) {
@@ -295,13 +295,13 @@ class BlockingElements {
     for (const mutation of mutations) {
       const idx = mutation.target === document.body ?
           parents.length :
-          parents.indexOf(mutation.target as IntertableHTMLElement);
+          parents.indexOf(mutation.target as InertableHTMLElement);
       const inertedChild = parents[idx - 1];
       const inertedSiblings = inertedChild[_siblingsToRestore];
 
       // To restore.
       for (let i = 0; i < mutation.removedNodes.length; i++) {
-        const sibling = mutation.removedNodes[i] as IntertableHTMLElement;
+        const sibling = mutation.removedNodes[i] as InertableHTMLElement;
         if (sibling === inertedChild) {
           console.info('Detected removal of the top Blocking Element.');
           this.pop();
@@ -315,7 +315,7 @@ class BlockingElements {
 
       // To inert.
       for (let i = 0; i < mutation.addedNodes.length; i++) {
-        const sibling = mutation.removedNodes[i] as IntertableHTMLElement;
+        const sibling = mutation.removedNodes[i] as InertableHTMLElement;
         if (!this[_isInertable](sibling)) {
           continue;
         }
