@@ -77,6 +77,10 @@ class BlockingElements {
   destructor() {
     // Restore original inertness.
     this[_restoreInertedSiblings](this[_topElParents]);
+    // Note we don't want to make these properties nullable on the class, since
+    // then we'd need non-null casts in many places. Calling a method on a
+    // BlockingElements instance after calling destructor will result in an
+    // exception.
     const nullable = this as unknown as {
       [_blockingElements]: null;
       [_topElParents]: null;
@@ -98,7 +102,7 @@ class BlockingElements {
   /**
    * Adds the element to the blocking elements.
    */
-  push(element: HTMLElement): HTMLElement|undefined {
+  push(element: HTMLElement): void {
     if (!element || element === this.top) {
       return;
     }
