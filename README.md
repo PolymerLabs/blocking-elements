@@ -59,6 +59,16 @@ npm install --save blocking-elements
 </script>
 ```
 
+### ES Module
+
+You can also use this polyfill from an ES module by importing `blockingElements` from `/dist/blocking-elements.js`, or if your toolchain suports bare module specifiers (e.g. TypeScript with `--moduleResolution=node`), from the `blocking-elements` module name. Note that this file is not minified, includes ES2015 classes, and does not set the `document.$blockingElements` global.
+
+```js
+import {blockingElements} from 'blocking-elements';
+blockingElements.push(...);
+blockingElements.remove(...);
+```
+
 ## Local development
 
 Install the dependencies with `npm install` and serve the resources.
