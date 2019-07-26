@@ -21,7 +21,7 @@
   "scripts": {
     "lint": "tslint --project ./",
     "test": "npm run lint && npm run build && easy-sauce",
-    "format": "clang-format --style=file -i *.ts",
+    "format": "clang-format --style=file -i src/*.ts",
     "prepack": "npm run build",
     "build": "rm dist/* && tsc && rollup -c && rm dist/document-global.*"
   },

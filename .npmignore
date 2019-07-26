@@ -3,8 +3,7 @@ test/**
 demo/**
 .babelrc
 .clang-format
-.eslintignore
-.eslintrc
 .travis.yml
-rollem.config.js
+rollup.config.js
 tsconfig.json
+tslint.json
