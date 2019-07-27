@@ -43,8 +43,8 @@ npm install --save blocking-elements
 <script src="./node_modules/blocking-elements/dist/blocking-elements.min.js"></script>
 
 <div id="container">
-  <button onclick="makeBlocking(container)">make blocking</button> 
-  <button onclick="undoBlocking(container)">undo blocking</button> 
+  <button onclick="makeBlocking(container)">make blocking</button>
+  <button onclick="undoBlocking(container)">undo blocking</button>
 </div>
 
 <button>some button</button>
@@ -59,15 +59,26 @@ npm install --save blocking-elements
 </script>
 ```
 
-### ES Module
+## Files
 
-You can also use this polyfill from an ES module by importing `blockingElements` from `/dist/blocking-elements.js`, or if your toolchain suports bare module specifiers (e.g. TypeScript with `--moduleResolution=node`), from the `blocking-elements` module name. Note that this file is not minified, includes ES2015 classes, and does not set the `document.$blockingElements` global.
+Two scripts are included:
 
-```js
-import {blockingElements} from 'blocking-elements';
-blockingElements.push(...);
-blockingElements.remove(...);
-```
+1. `/dist/blocking-elements.min.js`: minified and transpiled to ES5.
+
+2. `/dist/blocking-elements.js`: un-minified ES2017.
+
+   If your toolchain supports Node-style module resolution (e.g. TypeScript's `--moduleResolution=node`), then the main `blocking-elements` bare module specifier resolves to this file. TypeScript declarations are also included for this module:
+   
+   ```ts
+   import {DocumentWithBlockingElements} from 'blocking-elements';
+
+   const blockingElements =
+       (document as DocumentWithBlockingElements).$blockingElements;
+
+   blockingElements.push(...);
+   blockingElements.remove(...);
+   ```
+
 
 ## Local development
 
@@ -79,7 +90,7 @@ Run the tests locally by navigating to http://localhost:8080/test/
 
 Performance is dependent on the `inert` polyfill performance. Chrome recently landed [the `inert` attribute implementation](https://codereview.chromium.org/2088453002/) behind a flag.
 
-Let's compare the how long it takes to toggle the deepest `x-trap-focus` inside nested `x-b` of the demo page (<http://localhost:8080/demo/ce.html?ce=v1>) 
+Let's compare the how long it takes to toggle the deepest `x-trap-focus` inside nested `x-b` of the demo page (<http://localhost:8080/demo/ce.html?ce=v1>)
 
 ![results](https://cloud.githubusercontent.com/assets/6173664/17538133/914f365a-5e57-11e6-9b91-1c6b7eb22d57.png).
 
