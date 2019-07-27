@@ -88,5 +88,23 @@
       }, 'Non-connected element cannot be a blocking element');
       assert.equal(document.$blockingElements.top, null, 'element is not a blocking element');
     });
+
+    /**
+     * Currently failing.
+     * See https://github.com/PolymerLabs/blocking-elements/issues/18
+     */
+    it.skip('mutation to shadow root should inert siblings', function() {
+      // Make the first shadow root child blocking.
+      var shadowA = container.shadowRoot.querySelector('button');
+      document.$blockingElements.push(shadowA);
+      // Add a new shadow child (a sibling of the first one).
+      var shadowB = document.createElement('input');
+      container.shadowRoot.appendChild(shadowB);
+      // Mutation observer should notice the new child and inert it.
+      setTimeout(function() {
+        assert.isTrue(input.inert, 'new shadow child inert');
+        done();
+      });
+    });
   });
 })();
