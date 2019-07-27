@@ -87,6 +87,15 @@ export interface DocumentWithBlockingElements extends Document {
   interface HasInternalState extends Inertable, InternalState {}
   interface MaybeHasInternalState extends Inertable, Partial<InternalState> {}
 
+  /**
+   * ShadyDOM shady roots look a lot like real ShadowRoots. The __shady property
+   * gives them away, though.
+   */
+  interface MaybeShadyRoot extends Element {
+    __shady: unknown;
+    host: Element;
+  }
+
   class BlockingElementsImpl implements BlockingElements {
     /**
      * The blocking elements.
@@ -271,7 +280,8 @@ export interface DocumentWithBlockingElements extends Document {
         toKeepInert: Set<HTMLElement>|null) {
       for (const element of elements) {
         // Assume element is not a Document, so it must have a parentNode.
-        const children = element.parentNode!.children;
+        const parent = element.parentNode!;
+        const children = parent.children;
         const inertedSiblings = new Set<HTMLElement>();
         for (let j = 0; j < children.length; j++) {
           const sibling = children[j] as MaybeHasInternalState;
@@ -293,8 +303,15 @@ export interface DocumentWithBlockingElements extends Document {
         // Observe only immediate children mutations on the parent.
         const mo = new MutationObserver(this[_handleMutations].bind(this));
         element[_parentMO] = mo;
-        // Assume element is not a Document, so it must have a parentNode.
-        mo.observe(element.parentNode!, {
+        let parentToObserve = parent;
+        // If we're using the ShadyDOM polyfill, then our parent could be a
+        // shady root, which is an object that acts like a ShadowRoot, but isn't
+        // actually a node in the real DOM. Observe the real DOM parent instead.
+        const maybeShadyRoot = parentToObserve as MaybeShadyRoot;
+        if (maybeShadyRoot.__shady && maybeShadyRoot.host) {
+          parentToObserve = maybeShadyRoot.host;
+        }
+        mo.observe(parentToObserve, {
           childList: true,
         });
       }
