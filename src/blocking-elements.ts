@@ -15,7 +15,50 @@
  * limitations under the License.
  */
 
-(function(document) {
+/**
+ * `BlockingElements` manages a stack of elements that inert the interaction
+ * outside them. The top element is the interactive part of the document.
+ * The stack can be updated with the methods `push, remove, pop`.
+ */
+export interface BlockingElements {
+  /**
+   * Call this whenever this object is about to become obsolete. This empties
+   * the blocking elements
+   */
+  destructor(): void;
+
+  /**
+   * The top blocking element.
+   */
+  top: HTMLElement|null;
+
+  /**
+   * Adds the element to the blocking elements.
+   */
+  push(element: HTMLElement): void;
+
+  /**
+   * Removes the element from the blocking elements. Returns true if the
+   * element was removed.
+   */
+  remove(element: HTMLElement): boolean;
+
+  /**
+   * Remove the top blocking element and returns it.
+   */
+  pop(): HTMLElement|null;
+
+  /**
+   * Returns if the element is a blocking element.
+   */
+  has(element: HTMLElement): boolean;
+}
+
+export interface DocumentWithBlockingElements extends Document {
+  $blockingElements: BlockingElements;
+}
+
+(() => {
   /* Symbols for private properties */
   const _blockingElements = Symbol();
   const _alreadyInertElements = Symbol();
@@ -33,67 +76,69 @@
   const _isInertable = Symbol();
   const _handleMutations = Symbol();
 
+  interface Inertable extends HTMLElement {
+    inert?: boolean;
+  }
+
+  interface InternalState {
+    [_siblingsToRestore]: Set<MaybeHasInternalState>;
+    [_parentMO]: MutationObserver;
+  }
+  interface HasInternalState extends Inertable, InternalState {}
+  interface MaybeHasInternalState extends Inertable, Partial<InternalState> {}
+
   /**
-   * `BlockingElements` manages a stack of elements that inert the interaction
-   * outside them. The top element is the interactive part of the document.
-   * The stack can be updated with the methods `push, remove, pop`.
+   * ShadyDOM shady roots look a lot like real ShadowRoots. The __shady property
+   * gives them away, though.
    */
-  class BlockingElements {
+  interface MaybeShadyRoot extends Element {
+    __shady: unknown;
+    host: Element;
+  }
+
+  class BlockingElementsImpl implements BlockingElements {
     /**
-     * New BlockingElements instance.
+     * The blocking elements.
      */
-    constructor() {
-      /**
-       * The blocking elements.
-       * @type {Array<HTMLElement>}
-       * @private
-       */
-      this[_blockingElements] = [];
-
-      /**
-       * Used to keep track of the parents of the top element, from the element
-       * itself up to body. When top changes, the old top might have been removed
-       * from the document, so we need to memoize the inerted parents' siblings
-       * in order to restore their inerteness when top changes.
-       * @type {Array<HTMLElement>}
-       * @private
-       */
-      this[_topElParents] = [];
-
-      /**
-       * Elements that are already inert before the first blocking element is pushed.
-       * @type {Set<HTMLElement>}
-       * @private
-       */
-      this[_alreadyInertElements] = new Set();
-    }
+    private[_blockingElements]: MaybeHasInternalState[] = [];
 
     /**
-     * Call this whenever this object is about to become obsolete. This empties
-     * the blocking elements
+     * Used to keep track of the parents of the top element, from the element
+     * itself up to body. When top changes, the old top might have been removed
+     * from the document, so we need to memoize the inerted parents' siblings
+     * in order to restore their inerteness when top changes.
      */
-    destructor() {
+    private[_topElParents]: HasInternalState[] = [];
+
+    /**
+     * Elements that are already inert before the first blocking element is
+     * pushed.
+     */
+    private[_alreadyInertElements] = new Set<MaybeHasInternalState>();
+
+    destructor(): void {
       // Restore original inertness.
       this[_restoreInertedSiblings](this[_topElParents]);
-      this[_blockingElements] = null;
-      this[_topElParents] = null;
-      this[_alreadyInertElements] = null;
+      // Note we don't want to make these properties nullable on the class,
+      // since then we'd need non-null casts in many places. Calling a method on
+      // a BlockingElements instance after calling destructor will result in an
+      // exception.
+      const nullable = this as unknown as {
+        [_blockingElements]: null;
+        [_topElParents]: null;
+        [_alreadyInertElements]: null;
+      };
+      nullable[_blockingElements] = null;
+      nullable[_topElParents] = null;
+      nullable[_alreadyInertElements] = null;
     }
 
-    /**
-     * The top blocking element.
-     * @type {HTMLElement|null}
-     */
-    get top() {
+    get top(): HTMLElement|null {
       const elems = this[_blockingElements];
       return elems[elems.length - 1] || null;
     }
 
-    /**
-     * Adds the element to the blocking elements.
-     * @param {!HTMLElement} element
-     */
-    push(element) {
+    push(element: HTMLElement): void {
       if (!element || element === this.top) {
         return;
       }
@@ -103,13 +148,7 @@
       this[_blockingElements].push(element);
     }
 
-    /**
-     * Removes the element from the blocking elements. Returns true if the element
-     * was removed.
-     * @param {!HTMLElement} element
-     * @return {boolean}
-     */
-    remove(element) {
+    remove(element: HTMLElement): boolean {
       const i = this[_blockingElements].indexOf(element);
       if (i === -1) {
         return false;
@@ -122,32 +161,21 @@
       return true;
     }
 
-    /**
-     * Remove the top blocking element and returns it.
-     * @return {HTMLElement|null} the removed element.
-     */
-    pop() {
+    pop(): HTMLElement|null {
       const top = this.top;
       top && this.remove(top);
       return top;
     }
 
-    /**
-     * Returns if the element is a blocking element.
-     * @param {!HTMLElement} element
-     * @return {boolean}
-     */
-    has(element) {
+    has(element: HTMLElement): boolean {
       return this[_blockingElements].indexOf(element) !== -1;
     }
 
     /**
-     * Sets `inert` to all document elements except the new top element, its parents,
-     * and its distributed content.
-     * @param {?HTMLElement} newTop If null, it means the last blocking element was removed.
-     * @private
+     * Sets `inert` to all document elements except the new top element, its
+     * parents, and its distributed content.
      */
-    [_topChanged](newTop) {
+    private[_topChanged](newTop: MaybeHasInternalState|null): void {
       const toKeepInert = this[_alreadyInertElements];
       const oldParents = this[_topElParents];
       // No new top, reset old top if any.
@@ -163,7 +191,9 @@
       if (newParents[newParents.length - 1].parentNode !== document.body) {
         throw Error('Non-connected element cannot be a blocking element');
       }
-      this[_topElParents] = newParents;
+      // Cast here because we know we'll call _inertSiblings on newParents
+      // below.
+      this[_topElParents] = newParents as Array<HasInternalState>;
 
       const toSkip = this[_getDistributedChildren](newTop);
 
@@ -188,7 +218,7 @@
       // Restore old parents siblings inertness.
       i > 0 && this[_restoreInertedSiblings](oldParents.slice(0, i));
       // Make new parents siblings inert.
-      j > 0 && this[_inertSiblings](newParents.slice(0, j), toSkip);
+      j > 0 && this[_inertSiblings](newParents.slice(0, j), toSkip, null);
     }
 
     /**
@@ -196,11 +226,9 @@
      * Sets the property `inert` over the attribute since the inert spec
      * doesn't specify if it should be reflected.
      * https://html.spec.whatwg.org/multipage/interaction.html#inert
-     * @param {!HTMLElement} oldInert
-     * @param {!HTMLElement} newInert
-     * @private
      */
-    [_swapInertedSibling](oldInert, newInert) {
+    private[_swapInertedSibling](
+        oldInert: HasInternalState, newInert: MaybeHasInternalState): void {
       const siblingsToRestore = oldInert[_siblingsToRestore];
       // oldInert is not contained in siblings to restore, so we have to check
       // if it's inertable and if already inert.
@@ -215,9 +243,9 @@
         siblingsToRestore.delete(newInert);
       }
       newInert[_parentMO] = oldInert[_parentMO];
-      oldInert[_parentMO] = null;
       newInert[_siblingsToRestore] = siblingsToRestore;
-      oldInert[_siblingsToRestore] = null;
+      (oldInert as MaybeHasInternalState)[_parentMO] = undefined;
+      (oldInert as MaybeHasInternalState)[_siblingsToRestore] = undefined;
     }
 
     /**
@@ -225,18 +253,18 @@
      * Sets the property `inert` over the attribute since the inert spec
      * doesn't specify if it should be reflected.
      * https://html.spec.whatwg.org/multipage/interaction.html#inert
-     * @param {!Array<HTMLElement>} elements
-     * @private
      */
-    [_restoreInertedSiblings](elements) {
-      elements.forEach((el) => {
-        el[_parentMO].disconnect();
-        el[_parentMO] = null;
-        for (let sibling of el[_siblingsToRestore]) {
+    private[_restoreInertedSiblings](elements: HasInternalState[]) {
+      for (const element of elements) {
+        const mo = element[_parentMO];
+        mo.disconnect();
+        (element as MaybeHasInternalState)[_parentMO] = undefined;
+        const siblings = element[_siblingsToRestore];
+        for (const sibling of siblings) {
           sibling.inert = false;
         }
-        el[_siblingsToRestore] = null;
-      });
+        (element as MaybeHasInternalState)[_siblingsToRestore] = undefined;
+      }
     }
 
     /**
@@ -246,21 +274,20 @@
      * Sets the property `inert` over the attribute since the inert spec
      * doesn't specify if it should be reflected.
      * https://html.spec.whatwg.org/multipage/interaction.html#inert
-     * @param {!Array<HTMLElement>} elements
-     * @param {Set<HTMLElement>} toSkip
-     * @param {Set<HTMLElement>} toKeepInert
-     * @private
      */
-    [_inertSiblings](elements, toSkip, toKeepInert) {
-      for (let i = 0, l = elements.length; i < l; i++) {
-        const element = elements[i];
-        const children = element.parentNode.children;
-        const inertedSiblings = new Set();
+    private[_inertSiblings](
+        elements: MaybeHasInternalState[], toSkip: Set<HTMLElement>|null,
+        toKeepInert: Set<HTMLElement>|null) {
+      for (const element of elements) {
+        // Assume element is not a Document, so it must have a parentNode.
+        const parent = element.parentNode!;
+        const children = parent.children;
+        const inertedSiblings = new Set<HTMLElement>();
         for (let j = 0; j < children.length; j++) {
-          const sibling = children[j];
+          const sibling = children[j] as MaybeHasInternalState;
           // Skip the input element, if not inertable or to be skipped.
           if (sibling === element || !this[_isInertable](sibling) ||
-            (toSkip && toSkip.has(sibling))) {
+              (toSkip && toSkip.has(sibling))) {
             continue;
           }
           // Should be collected since already inerted.
@@ -274,8 +301,17 @@
         // Store the siblings that were inerted.
         element[_siblingsToRestore] = inertedSiblings;
         // Observe only immediate children mutations on the parent.
-        element[_parentMO] = new MutationObserver(this[_handleMutations].bind(this));
-        element[_parentMO].observe(element.parentNode, {
+        const mo = new MutationObserver(this[_handleMutations].bind(this));
+        element[_parentMO] = mo;
+        let parentToObserve = parent;
+        // If we're using the ShadyDOM polyfill, then our parent could be a
+        // shady root, which is an object that acts like a ShadowRoot, but isn't
+        // actually a node in the real DOM. Observe the real DOM parent instead.
+        const maybeShadyRoot = parentToObserve as MaybeShadyRoot;
+        if (maybeShadyRoot.__shady && maybeShadyRoot.host) {
+          parentToObserve = maybeShadyRoot.host;
+        }
+        mo.observe(parentToObserve, {
           childList: true,
         });
       }
@@ -285,21 +321,20 @@
      * Handles newly added/removed nodes by toggling their inertness.
      * It also checks if the current top Blocking Element has been removed,
      * notifying and removing it.
-     * @param {Array<MutationRecord>} mutations
-     * @private
      */
-    [_handleMutations](mutations) {
+    private[_handleMutations](mutations: MutationRecord[]): void {
       const parents = this[_topElParents];
       const toKeepInert = this[_alreadyInertElements];
       for (const mutation of mutations) {
         const idx = mutation.target === document.body ?
-          parents.length :
-          parents.indexOf(mutation.target);
+            parents.length :
+            parents.indexOf(mutation.target as HasInternalState);
         const inertedChild = parents[idx - 1];
         const inertedSiblings = inertedChild[_siblingsToRestore];
 
         // To restore.
-        for (const sibling of mutation.removedNodes) {
+        for (let i = 0; i < mutation.removedNodes.length; i++) {
+          const sibling = mutation.removedNodes[i] as MaybeHasInternalState;
           if (sibling === inertedChild) {
             console.info('Detected removal of the top Blocking Element.');
             this.pop();
@@ -312,7 +347,8 @@
         }
 
         // To inert.
-        for (const sibling of mutation.addedNodes) {
+        for (let i = 0; i < mutation.addedNodes.length; i++) {
+          const sibling = mutation.addedNodes[i] as MaybeHasInternalState;
           if (!this[_isInertable](sibling)) {
             continue;
           }
@@ -328,24 +364,18 @@
 
     /**
      * Returns if the element is inertable.
-     * @param {!HTMLElement} element
-     * @return {boolean}
-     * @private
      */
-    [_isInertable](element) {
+    private[_isInertable](element: HTMLElement): boolean {
       return false === /^(style|template|script)$/.test(element.localName);
     }
 
     /**
-     * Returns the list of newParents of an element, starting from element (included)
-     * up to `document.body` (excluded).
-     * @param {HTMLElement} element
-     * @return {Array<HTMLElement>}
-     * @private
+     * Returns the list of newParents of an element, starting from element
+     * (included) up to `document.body` (excluded).
      */
-    [_getParents](element) {
+    private[_getParents](element: HTMLElement): Array<HTMLElement> {
       const parents = [];
-      let current = element;
+      let current: HTMLElement|null|undefined = element;
       // Stop to body.
       while (current && current !== document.body) {
         // Skip shadow roots.
@@ -355,25 +385,15 @@
         // ShadowDom v1
         if (current.assignedSlot) {
           // Collect slots from deepest slot to top.
-          while ((current = current.assignedSlot)) {
+          while (current = current.assignedSlot) {
             parents.push(current);
           }
           // Continue the search on the top slot.
           current = parents.pop();
           continue;
         }
-        // ShadowDom v0
-        const insertionPoints = current.getDestinationInsertionPoints ?
-          current.getDestinationInsertionPoints() : [];
-        if (insertionPoints.length) {
-          for (let i = 0; i < insertionPoints.length; i++) {
-            parents.push(insertionPoints[i]);
-          }
-          // Continue the search on the top content.
-          current = parents.pop();
-          continue;
-        }
-        current = current.parentNode || current.host;
+        current = current.parentNode as HTMLElement ||
+            (current as Node as ShadowRoot).host;
       }
       return parents;
     }
@@ -381,20 +401,17 @@
     /**
      * Returns the distributed children of the element's shadow root.
      * Returns null if the element doesn't have a shadow root.
-     * @param {!element} element
-     * @return {Set<HTMLElement>|null}
-     * @private
      */
-    [_getDistributedChildren](element) {
+    private[_getDistributedChildren](element: HTMLElement):
+        Set<HTMLElement>|null {
       const shadowRoot = element.shadowRoot;
       if (!shadowRoot) {
         return null;
       }
-      const result = new Set();
+      const result = new Set<HTMLElement>();
       let i;
       let j;
       let nodes;
-      // ShadowDom v1
       const slots = shadowRoot.querySelectorAll('slot');
       if (slots.length && slots[0].assignedNodes) {
         for (i = 0; i < slots.length; i++) {
@@ -403,28 +420,16 @@
           });
           for (j = 0; j < nodes.length; j++) {
             if (nodes[j].nodeType === Node.ELEMENT_NODE) {
-              result.add(nodes[j]);
+              result.add(nodes[j] as HTMLElement);
             }
           }
         }
         // No need to search for <content>.
-        return result;
-      }
-      // ShadowDom v0
-      const contents = shadowRoot.querySelectorAll('content');
-      if (contents.length && contents[0].getDistributedNodes) {
-        for (i = 0; i < contents.length; i++) {
-          nodes = contents[i].getDistributedNodes();
-          for (j = 0; j < nodes.length; j++) {
-            if (nodes[j].nodeType === Node.ELEMENT_NODE) {
-              result.add(nodes[j]);
-            }
-          }
-        }
       }
       return result;
     }
   }
 
-  document.$blockingElements = new BlockingElements();
-})(document);
+  (document as DocumentWithBlockingElements).$blockingElements =
+      new BlockingElementsImpl();
+})();

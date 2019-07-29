@@ -1,0 +1,9 @@
+*.tgz
+test/**
+demo/**
+.babelrc
+.clang-format
+.travis.yml
+rollup.config.js
+tsconfig.json
+tslint.json
