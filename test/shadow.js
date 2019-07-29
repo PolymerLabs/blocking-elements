@@ -89,11 +89,7 @@
       assert.equal(document.$blockingElements.top, null, 'element is not a blocking element');
     });
 
-    /**
-     * Currently failing.
-     * See https://github.com/PolymerLabs/blocking-elements/issues/18
-     */
-    it.skip('mutation to shadow root should inert siblings', function() {
+    it('mutation to shadow root should inert siblings', function(done) {
       // Make the first shadow root child blocking.
       var shadowA = container.shadowRoot.querySelector('button');
       document.$blockingElements.push(shadowA);
@@ -102,7 +98,7 @@
       container.shadowRoot.appendChild(shadowB);
       // Mutation observer should notice the new child and inert it.
       setTimeout(function() {
-        assert.isTrue(input.inert, 'new shadow child inert');
+        assert.isTrue(shadowB.inert, 'new shadow child inert');
         done();
       });
     });

@@ -326,9 +326,12 @@ export interface DocumentWithBlockingElements extends Document {
       const parents = this[_topElParents];
       const toKeepInert = this[_alreadyInertElements];
       for (const mutation of mutations) {
-        const idx = mutation.target === document.body ?
+        // If the target is a shadowRoot, get its host as we skip shadowRoots when
+        // computing _topElParents.
+        const target = (mutation.target as ShadowRoot).host || mutation.target;
+        const idx = target === document.body ?
             parents.length :
-            parents.indexOf(mutation.target as HasInternalState);
+            parents.indexOf(target as HasInternalState);
         const inertedChild = parents[idx - 1];
         const inertedSiblings = inertedChild[_siblingsToRestore];
 
