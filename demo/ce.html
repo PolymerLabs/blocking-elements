@@ -19,26 +19,11 @@ limitations under the License.
   <script src="../node_modules/babel-polyfill/dist/polyfill.min.js"></script>
   <script src="../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
   <script src="../node_modules/wicg-inert/dist/inert.js"></script>
-  <!-- blocking-elements polyfill imported by x-trap-focus.html -->
-
-  <script>
-    // Dynamic import according to query param ce=v0|v1.
-    const importFiles = ['x-trap-focus.html', 'x-a.html', 'x-b.html'];
-    // Find the version.
-    let version = 'v0';
-    const href = window.location.href;
-    if (href.indexOf('ce=') === -1) {
-      version = !Element.prototype.attachShadow ? 'v0' : 'v1';
-    } else {
-      version = href.indexOf('ce=v1') === -1 ? 'v0' : 'v1';
-    }
-    console.info('Using ShadowDom ' + version);
-    for (var i = 0; i < importFiles.length; i++) {
-      const link = document.createElement('link')
-      link.setAttribute('rel', 'import');
-      link.setAttribute('href', './' + version + '/' + importFiles[i]);
-      document.head.appendChild(link);
-    }
+  <script src="../dist/blocking-elements.js"></script>
+  <script type="module">
+    import './x-trap-focus.js';
+    import './x-a.js';
+    import './x-b.js';
   </script>
 </head>
 
