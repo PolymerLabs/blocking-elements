@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/PolymerLabs/blocking-elements.svg?branch=master)](https://travis-ci.org/PolymerLabs/blocking-elements)
+[![Published on npm](https://img.shields.io/npm/v/blocking-elements.svg)](https://www.npmjs.com/package/blocking-elements)
 
 # Blocking Elements stack API
 
