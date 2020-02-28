@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "A polyfill for the proposed blocking elements stack API",
   "main": "dist/blocking-elements.js",
+  "module": "dist/blocking-elements.js",
   "author": "Valdrin Koshi <valdrin@google.com>",
   "license": "Apache-2.0",
   "repository": {
