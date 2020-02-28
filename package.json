@@ -1,6 +1,6 @@
 {
   "name": "blocking-elements",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A polyfill for the proposed blocking elements stack API",
   "main": "dist/blocking-elements.js",
   "module": "dist/blocking-elements.js",
